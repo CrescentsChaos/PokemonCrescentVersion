@@ -12,4 +12,4 @@ from langdetect import detect
 from discord import File
 from easy_pil import Editor,load_image_async,Font
 from pokemon import *
-token=""
+token="MTA4NDUwODI4MTA0NjgyNzEwOQ.Gbhers.Xn3BoHf6EofbW4Y_DV4hmkefyZqZUkmE8p-kq0"
