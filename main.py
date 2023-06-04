@@ -1,614 +1,628 @@
-from intro import *
-@bot.command(aliases=["ts"])        
-async def test(ctx):
-    "Test command"
-    await battle(ctx,ctx.author)
-@bot.command(aliases=["dx"], description="Shows Pokémon!")
-async def dex(ctx,name,cat="No"):  
-    name=name.title()
-    db=sqlite3.connect("pokemondata.db")
-    c=db.cursor()   
-    dt=sqlite3.connect("owned.db")
-    cx=dt.cursor()
-    c.execute(f"select * from 'wild' where Name='{name}'")
-    x=c.fetchall() 
-    cx.execute(f"select * from '{ctx.author.id}' where name='{name}'")
-    ch=cx.fetchall()
-    text=""
-    if len(ch)==0:
-        text=f"You haven't caught any {name} yet!"
-    if len(ch)>0:
-        text=f"You have caught {len(ch)} {name}!"
-    if len(x)!=0: 
-        p=x[0]
-        total=p[4]+p[5]+p[6]+p[7]+p[8]+p[9]
-        sprite=p[12]
-        name=p[0]
-        rare=p[14]
-        if cat.lower()=="gmax":
-            name="Gigantamax "+p[0]
-            sprite=sprite.split(".gif")[0]+"-gmax.gif"
-        if cat.lower()=="shiny":
-            rare="Almost Impossible"
-            name="Shiny "+p[0]
-            sprite="http://play.pokemonshowdown.com/sprites/ani-shiny/"+sprite.split("/")[-1]
-        types=p[1]
-        if p[2]!="???":
-            types=f"{p[1]}/{p[2]}"
-        data=discord.Embed(title=f"{name}", color=0x00ff00)
-        data.add_field(name="Infos",value=f"**Types:** {types}\n**Abilities:** {p[11]}\n**Rarity:** {rare}\n**Weight:** {p[13]} lbs\n**Region:** {p[16]}")
-        data.add_field(name=f"Base Stats: {total}",value=f"""**HP:** {p[4]}\n**Attack:** {p[5]}\n**Defense:** {p[6]}\n**Sp. Atk:** {p[7]}\n**Sp. Def:** {p[8]}\n**Speed:** {p[9]}""")
-        data.set_image(url=sprite) 
-        data.set_footer(text=text)
-        await ctx.send(embed=data)
-        
-@bot.command(aliases=["sp"], description="Spawns Pokémon!")
-async def spawn(ctx):
-    "Spawns wild Pokémons"
-    dx=sqlite3.connect("playerdata.db")
-    ct=dx.cursor()
-    ct.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{ctx.author.id}' ")
-    if ct.fetchone():
-        db=sqlite3.connect("pokemondata.db")
-        dt=sqlite3.connect("owned.db")
-        cx=dt.cursor()
-        c=db.cursor()
-        select=random.choices(["Common","Uncommon","Rare","Very Rare","Common Legendary","Legendary","Mythical"],weights=[500,190,70,50,10,3,1],k=1)[0]
-        c.execute(f"select * from 'wild' where Rarity='{select}'")
-        x=c.fetchall()
-        m=random.choice(x)
-        tch=random.randint(1,50)
-        ach=random.randint(1,100)
-        tera="???"
-        extra=""
-        turl=""
-        shinyodd=random.randint(1,1024)
-        shiny="No"
-        maxiv="No"
-        if shinyodd==7:
-            shiny="Yes"
-        if ach==7 and select not in ("Common Legendary","Legendary","Mythical"):
-            maxiv="Alpha"
-            turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103318414795219024/20230503_195314.png"
-            extra=" This pokémon seems larger than usual!"
-        if tch==7:
-            tera=random.choice(("Rock","Fire","Water","Grass","Electric","Ground","Flying","Fighting","Fairy","Dragon","Steel","Poison","Dark","Ghost","Normal","Bug","Ice","Psychic"))
-            if tera not in (m[1],m[2]):
-                extra=" Seems like it has a different Tera-Type!"
-                if tera=="Psychic":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076287830048820/Psychic_Tera.png"
-                if tera=="Ice":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076210961023176/Ice_Tera.png"
-                if tera=="Bug":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103075280286928977/Bug_Tera.png"
-                if tera=="Normal":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076242779033621/Normal_Tera.png"
-                if tera=="Ghost":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076146045780029/Ghost_Tera.png"
-                if tera=="Dark":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103075420561232012/Dark_Tera.png"
-                if tera=="Poison":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076263649886238/Poison_Tera.png"
-                if tera=="Steel":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076336458801244/Steel_Tera.png"
-                if tera=="Dragon":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103075563830251681/Dragon_Tera.png"
-                if tera=="Fairy":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103075789353779250/Fairy_Tera.png"
-                if tera=="Fighting":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103075834341888111/Fighting_Tera.png"
-                if tera=="Flying":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103075897306779668/Flying_Tera.png"
-                if tera=="Ground":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076191293952111/Ground_Tera.png"
-                if tera=="Electric":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103075609116164217/Electric_Tera.png"
-                if tera=="Grass":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076168170733719/Grass_Tera.png"
-                if tera=="Water":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076350341951498/Water_Tera.png"
-                if tera=="Rock":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103076317685088358/Rock_Tera.png"
-                if tera=="Fire":
-                    turl="https://cdn.discordapp.com/attachments/1102579499989745764/1103075867854372905/Fire_Tera.png"
-            
-        p=Pokemon(name=m[0],primaryType=m[1],secondaryType=m[2],level=m[3],hp=m[4],atk=m[5],defense=m[6],spatk=m[7],spdef=m[8],speed=m[9],moves=m[10], ability=m[11],sprite=m[12],gender=m[15],tera=tera,shiny=shiny,maxiv=maxiv)
-        types=p.primaryType
-        if p.secondaryType!="???":
-            types=f"{p.primaryType}/{p.secondaryType}"
-        p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
-        p.totalev=(p.hpev+p.atkev+p.defev+p.spatkev+p.spdefev+p.speedev)    
-        wild=discord.Embed(title=f"A wild pokémon has appeared!{extra}")
-        if (tch<10 and tera not in (m[1],m[2])) or "Alpha" in p.nickname:
-            wild.set_thumbnail(url=f"{turl}")
-        wild.set_image(url=p.sprite)
-        wild.set_footer(text="Guess it's full name to capture it!")
-        flee=discord.Embed(title=f"The wild {p.name} fled!")
-        flee.set_image(url=p.sprite)
-        flee.set_footer(text="Try again later!")
-        await ctx.send(embed=wild)
-        while True:
-            guess = await bot.wait_for('message')
-            if "!sp" in guess.content and guess.author==ctx.author:
-                await ctx.send(embed=flee)
-                break
-            if p.name.lower() in guess.content.lower():
-                p.moves=f"{p.moves}"
-                cx.execute(f"""CREATE TABLE IF NOT EXISTS [{guess.author.id}] (
-                Name text,
-                Nickname text,
-                Level integer,
-                hpiv integer,
-                atkiv integer,
-                defiv integer,
-                spatkiv integer,
-                spdefiv integer,
-                speediv integer,
-                hpev integer,
-                atkev integer,
-                defev integer,
-                spatkev integer,
-                spdefev integer,
-                speedev integer,
-                ability text,
-                nature text,
-                shiny text,
-                item text,
-                gender text,
-                teratype text,
-                maxiv text,
-                moves text,
-                rarity text,
-                code integer)""")
-                hh=cx.fetchall()
-                code=len(hh)+1
-                cx.execute(f"""INSERT INTO "{guess.author.id}" VALUES (
-                "{p.name}",
-                "{p.nickname}",
-                "{p.level}",
-                "{p.hpiv}",
-                "{p.atkiv}",
-                "{p.defiv}",
-                "{p.spatkiv}",
-                "{p.spdefiv}",
-                "{p.speediv}",
-                "{p.hpev}",
-                "{p.atkev}",
-                "{p.defev}",
-                "{p.spatkev}",
-                "{p.spdefev}",
-                "{p.speedev}",
-                "{p.ability}",
-                "{p.nature}",
-                "{p.shiny}",
-                "{p.item}",
-                "{p.gender}",
-                "{p.tera}",
-                "Custom",
-                "{p.moves}",
-                "{m[14]}",
-                "{code}")""")
-                dt.commit()
-                db.commit()
-                catch="caught"
-                if ctx.author!=guess.author:
-                    catch="sniped"
-                await guess.reply(f"{guess.author.display_name} {catch} a level {p.level} {p.nickname}!")
-                break       
-    else:
-        await ctx.send("You don't have an account. Type `!start` to create an account.")     
-        
-@bot.command(aliases=["st"])            
-async def start(ctx):
-    dt=sqlite3.connect("playerdata.db")
-    ct=dt.cursor()
-    ct.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{ctx.author.id}' ")
-    if ct.fetchone():
-        await ctx.send("You already have an account!")
-    else:
-        ct.execute(f"""CREATE TABLE IF NOT EXISTS [{ctx.author.id}] (
-        Balance integer,
-        Squad text
-        )""")
-        ct.execute(f"""INSERT INTO "{ctx.author.id}" VALUES (
-        "0",
-        "0,0,0,0,0,0")""")
-        dt.commit()
-        await ctx.send("Account created successfully.")
-        db=sqlite3.connect("pokemondata.db")
-        dx=sqlite3.connect("owned.db")
-        c=db.cursor()
-        cx=dx.cursor()
-        ann=discord.Embed(title="Choose your starter:", description="Enter the fullname of the starter to claim it.")
-        ann.add_field(name="Kanto",value="Venusaur\nCharizard\nBlastoise")
-        ann.add_field(name="Johto",value="Meganium\nThyphlosion\nFeraligatr")
-        ann.add_field(name="Hoenn",value="Sceptile\nBlaziken\nSwampert")
-        ann.add_field(name="Sinnoh",value="Torterra\nInfernape\nEmpoleon")
-        ann.add_field(name="Unova",value="Serperior\nEmboar\nSamurott")
-        ann.add_field(name="Kalos",value="Chesnaught\nDelphox\nGreninja")
-        ann.add_field(name="Alola",value="Decidueye\nIncineroar\nPrimarina")
-        ann.add_field(name="Galar",value="Rillaboom\nCinderace\nInteleon")
-        ann.add_field(name="Paldea",value="Meowscarada\nSkeledirge\nQuaquaval")
-        ann.set_footer(text="You have to enter the full name to claim your starter.")
-        await ctx.send(embed=ann)
-        while True:
-            guess=await bot.wait_for('message',check=lambda message: message.author==ctx.author)
-            nam=guess.content.strip().title()
-            c.execute(f"Select * from 'wild' where name='{nam}'")
-            m=c.fetchone()
-            if "!" in guess.content:
-                break
-            elif len(m)!=0:
-                shinyodd=random.randint(1,512)
-                shiny="No"
-                if shinyodd==7:
-                    shiny="Yes"
-                p=Pokemon(name=m[0],primaryType=m[1],secondaryType=m[2],level=m[3],hp=m[4],atk=m[5],defense=m[6],spatk=m[7],spdef=m[8],speed=m[9],moves=m[10], ability=m[11],sprite=m[12],gender=m[15],shiny=shiny)
-                p.moves=f"{p.moves}"
-                cx.execute(f"""CREATE TABLE IF NOT EXISTS [{ctx.author.id}] (
-                Name text,
-                Nickname text,
-                Level integer,
-                hpiv integer,
-                atkiv integer,
-                defiv integer,
-                spatkiv integer,
-                spdefiv integer,
-                speediv integer,
-                hpev integer,
-                atkev integer,
-                defev integer,
-                spatkev integer,
-                spdefev integer,
-                speedev integer,
-                ability text,
-                nature text,
-                shiny text,
-                item text,
-                gender text,
-                teratype text,
-                maxiv text,
-                moves text,
-                rarity text,
-                code integer)""")
-                hh=cx.fetchall()
-                code=len(hh)+1
-                cx.execute(f"""INSERT INTO "{ctx.author.id}" VALUES (
-                "{p.name}",
-                "{p.nickname}",
-                "{p.level}",
-                "{p.hpiv}",
-                "{p.atkiv}",
-                "{p.defiv}",
-                "{p.spatkiv}",
-                "{p.spdefiv}",
-                "{p.speediv}",
-                "{p.hpev}",
-                "{p.atkev}",
-                "{p.defev}",
-                "{p.spatkev}",
-                "{p.spdefev}",
-                "{p.speedev}",
-                "{p.ability}",
-                "{p.nature}",
-                "{p.shiny}",
-                "{p.item}",
-                "{p.gender}",
-                "{p.tera}",
-                "Custom",
-                "{p.moves}",
-                "{m[14]}",
-                "{code}")""")
-                dx.commit()
-                db.commit()
-                show=discord.Embed(title=f"Congratulations {ctx.author.display_name}! You chose {p.name} as your starter!")
-                show.set_thumbnail(url=ctx.author.avatar)
-                show.set_image(url=p.sprite)
-                show.set_footer(text="Enter '!info' to see more details or '!spawn' to start catching pokémons.")
-                await ctx.send(embed=show)
-                break
-        
-        
-@bot.command(aliases=["pi"])
-async def info(ctx,num=None):
-    p,allmon=await pokonvert(ctx,num)
-    if len(allmon)!=0:
-        if num==None:
-            num=len(allmon)
-        types=p.primaryType
-        if p.secondaryType!="???":
-            types=f"{p.primaryType}/{p.secondaryType}"
-        p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
-        p.totalev=(p.hpev+p.atkev+p.defev+p.spatkev+p.spdefev+p.speedev)  
-        infos=discord.Embed(title=f"#{num} {p.nickname} Lv.{p.level}", description=f"""**Types:** {types}\n**Tera-Type:** {p.tera}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {p.gender}\n**Held Item:** {p.item}\n**HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508""",color=0x00ff00)
-        infos.set_author(name=ctx.author.display_name)
-        infos.set_image(url=p.sprite)
-        infos.set_thumbnail(url=ctx.author.avatar)
-        infos.set_footer(text=f"ID: {ctx.author.id}\nDisplaying Pokémon: {num}/{len(allmon)}")
-        await ctx.send(embed=infos)
-    else:
-        await ctx.send("Unfortunately you don't have any Pokémon. Please catch some Pokémon using `!spawn` command.")         
-@bot.command(aliases=["pp"])     
-async def pokemons(ctx,num=1,name="None"):
-    db=sqlite3.connect(f"owned.db")
-    c=db.cursor()  
-    if name=="None":
-        c.execute(f"Select * from '{ctx.author.id}'")
-    if name!="None":
-        name=name.title()
-        c.execute(f"Select * from '{ctx.author.id}' where name='{name}'")
-    n=c.fetchall()
-    numbers=[]
-    if len(n)!=0:
-        for i in n:
-            numbers.append(i)
-        list_of_lists = []
-        list_temp = []
-        limit = 10
-        # iterate through the list
-        i = 0
-        while i < len(numbers):
-            if len(list_temp) < limit:
-                list_temp.append(numbers[i])
-                i += 1
-            else:
-                # when the limit is reached, add the sub-list to the list of lists
-                list_of_lists.append(list_temp)
-                list_temp = []
-        # add the remaining items to the list of lists
-        list_of_lists.append(list_temp)
-        pages=len(list_of_lists)
-        if 0<num<=len(list_of_lists):
-            x=discord.Embed(title="Pokémon PC", description=f"You've caught {len(n)} total Pokémons.",color=0x220022)
-            x.set_author(name=ctx.author.display_name)
-            x.set_thumbnail(url=ctx.author.avatar)
-            for i in list_of_lists[num-1]:
-                c.execute(f"select * from '{ctx.author.id}'")
-                ll=c.fetchall()
-                k=(ll.index(i))+1
-                name=i[1]
-                ivp=round((i[3]+i[4]+i[5]+i[6]+i[7]+i[8])/1.86,2)
-                if i[17]=="Yes":
-                    name="Shiny "+i[1]
-                x.add_field(name=f"#{k} {name}",value=f"**Gender:** {i[19]} | **Ability:** {i[15]} | **IV:** {ivp}%")
-            x.set_footer(text=f"Showing {num} out of {len(list_of_lists)} pages.")
-            await ctx.send(embed=x)
-    else:
-        await ctx.send("Unfortunately you don't have any Pokémon. Please catch some Pokémon using `!spawn` command.")        
-@bot.command(aliases=["rl"])            
-async def release(ctx,num=1,force="No"):
-    db=sqlite3.connect("owned.db")
-    c=db.cursor()
-    c.execute(f"Select *,rowid from '{ctx.author.id}'")
-    r=c.fetchall()
-    num=r[num-1][25]
-    if force in ["y","yes"]:
-       c.execute(f"delete from '{ctx.author.id}' where rowid={num}")
-       db.commit()
-       await ctx.send(f"{r[num-1][0]} was released!")
-    elif force=="No":
-        await ctx.send(f"Do you want to release {r[0][0]}?")
-        while True:
-            guess = await bot.wait_for('message')
-            if "!" in guess.content:
-                break
-            elif guess.content.lower() in ["n","no"] and guess.author==ctx.author:
-                await ctx.send(f"{r[0][0]} was't released!")
-                break
-            elif guess.content.lower() in ["y","yes"]and guess.author==ctx.author:
-                c.execute(f"delete from '{ctx.author.id}' where rowid={num}")
-                db.commit()
-                await ctx.send(f"{r[0][0]} was released!")
-                break
-                
-@bot.command(aliases=["mv"])
-async def moves(ctx,num=1):
-    dt=sqlite3.connect("pokemondata.db")
-    db=sqlite3.connect("owned.db")
-    cx=dt.cursor()
-    c=db.cursor()           
-    c.execute(f"Select * from '{ctx.author.id}' where rowid={num} ")
-    mon=c.fetchone()
-    move=eval(mon[22])
-    cx.execute(f"Select * from 'wild' where name='{mon[0]}'")
-    spc=cx.fetchone()
-    canlearn=eval(spc[10])
-    known=""
-    can=""
-    n=0
-    for i in move:
-        n+=1
-        known+=f"#{n} {i}\n"
-    for i in canlearn:
-        can+=f"{i}\n"
-    now=discord.Embed(title=f"{mon[0]}'s Moveset:",color=0xff0000)
-    now.add_field(name="Current Moveset:",value=known)
-    now.add_field(name="Available Moves:",value=can)
-    now.set_footer(text="!learn num 'move name' to update moveset.")
-    now.set_image(url=spc[12])
-    await ctx.send(embed=now)
-        
-@bot.command(aliases=["lr"])
-async def learn(ctx,num=1,select=None):
-    if select!="None":
-        select=select.title()
-        dt=sqlite3.connect("pokemondata.db")
-        db=sqlite3.connect("owned.db")
-        cx=dt.cursor()
-        c=db.cursor()           
-        c.execute(f"Select * from '{ctx.author.id}' where rowid={num} ")
-        mon=c.fetchone()
-        move=eval(mon[22])
-        cx.execute(f"Select * from 'wild' where name='{mon[0]}'")
-        spc=cx.fetchone()
-        canlearn=eval(spc[10])
-        known=""
-        n=0
-        for i in move:
-            n+=1
-            known+=f"#{n} {i}\n"    
-        now=discord.Embed(title=f"{mon[0]}'s Moveset:", description=f"Select a move to replace with {select}!",color=0xff0000)
-        now.add_field(name="Current Moveset",value=known)
-        now.set_footer(text="Enter the 'number' of the move you want to replace!")
-        if select in canlearn and select not in move:
-            await ctx.send(embed=now)
-            while True:
-                response = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
-                if response.author==ctx.author and "!" in response.content:
-                    break
-                if response.author==ctx.author and 0<int(response.content)<=4:
-                    rep=move[int(response.content)-1]
-                    move[int(response.content)-1]=select
-                    move=f"{move}".replace('"',"'")
-                    c.execute(f"""Update `{ctx.author.id}` set moves="{move}" where rowid={num}""")
-                    db.commit()
-                    db.close()
-                    await ctx.send(f"{rep} was replaced by {select}!")
-                    break
+from misc import *
+
+@bot.command(aliases=["bt"])
+async def battle(ctx,member:discord.Member):
+    await ctx.send(f"{member.mention} do you want to battle?")
+    while True:
+        response=await bot.wait_for('message',check=lambda message:message.author==member)
+        if response.content.lower() in ["y","yes"]:
+            await ctx.send(f"Battle starting between {ctx.author.display_name} and {member.display_name}!")
+            await multiplayer(ctx,ctx.author,member)
+            break
         else:
-            await ctx.send(f"{mon[0]} cannot learn {select} or you misspelled it.")          
-                  
-@bot.command(aliases=["ev"])
-async def evtrain(ctx,num,hpev=0,atkev=0,defev=0,spatkev=0,spdefev=0,speedev=0):
-    evlist=[hpev,atkev,defev,spatkev,spdefev,speedev]
-    total=hpev+atkev+defev+spatkev+spdefev+speedev
-    if max(evlist)<=252 and len(evlist)==6 and total<=508:
-        db=sqlite3.connect("owned.db")
-        c=db.cursor()
-        c.execute(f"""Update `{ctx.author.id}` set 
-        hpev="{hpev}",
-        atkev="{atkev}",
-        defev="{defev}",
-        spatkev="{spatkev}",
-        spdefev="{spdefev}",
-        speedev="{speedev}"
-        where rowid={num}""")
-        db.commit()
-        await ctx.send("EV training complete.")
-    else:
-        await ctx.send("Invalid input.") 
-        
-@bot.command(aliases=["it"])      
-async def items(ctx,item):
-    item=item.title()
-    db=sqlite3.connect("pokemondata.db")    
-    c=db.cursor()   
-    c.execute(f"select * from 'itemshop' where item='{item}'")
-    item=c.fetchone()
-    show=discord.Embed(title=f"{item[0]}", description=f"Price: {item[1]} ¥")
-    show.set_thumbnail(url=item[2])
-    show.set_footer(text="Use `!buy 'item name' to buy the item.")
-    await ctx.send(embed=show)
-    
-@bot.command(aliases=["br"])    
-async def breed(ctx,mon1,mon2):
-    num1=mon1
-    num2=mon2
-    mon1=await pokonvert(ctx,mon1)
-    mon2=await pokonvert(ctx,mon2)
-    mon1=mon1[0]
-    mon2=mon2[0]
-    if mon1.gender!=mon2.gender and "Genderless" not in (mon1.gender,mon2.gender) and mon1.name in mon2.name:
-        dt=sqlite3.connect("pokemondata.db")
-        db=sqlite3.connect("owned.db")
-        ct=dt.cursor()
-        c=db.cursor()
-        name=""
-        if mon1.gender=="Female":
-            name=mon1.name
-        if mon2.gender=="Female":
-            name=mon2.name
-        ct.execute(f"Select * from 'wild' where name='{name}' ")
-        m=ct.fetchone()
-        hpiv=max([mon1.hpiv,mon2.hpiv])
-        atkiv=max([mon1.atkiv,mon2.atkiv])
-        defiv=max([mon1.defiv,mon2.defiv])
-        spatkiv=max([mon1.spatkiv,mon2.spatkiv])
-        spdefiv=max([mon1.spdefiv,mon2.spdefiv])
-        speediv=max([mon1.speediv,mon2.speediv])
-        shinyodd=random.randint(1,256)
-        shiny="No"
-        if shinyodd==7:
-            shiny="Yes"
-        p=Pokemon(name=m[0],primaryType=m[1],secondaryType=m[2],level=m[3],hp=m[4],atk=m[5],defense=m[6],spatk=m[7],spdef=m[8],speed=m[9],moves=m[10], ability=m[11],sprite=m[12],gender=m[15],maxiv="Custom",shiny=shiny,hpiv=hpiv,atkiv=atkiv,defiv=defiv,spatkiv=spatkiv,spdefiv=spdefiv,speediv=speediv)
-        p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
-        p.totalev=(p.hpev+p.atkev+p.defev+p.spatkev+p.spdefev+p.speedev)  
-        bred=discord.Embed(title="Proceed breeding?", description=f"Sacrifice {mon1.name} and {mon2.name} to breed a better pokémon!")
-        types=p.primaryType
-        if p.secondaryType!="???":
-            types=f"{p.primaryType}/{p.secondaryType}"
-        bred.add_field(name=f"Newborn {p.name}", value=f"""**Types:** {types}\n**Tera-Type:** {p.tera}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {p.gender}\n**Held Item:** {p.item}\n**HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508""")
-        bred.set_image(url=p.sprite)
-        await ctx.send(embed=bred)
-        while True:
-            ans=await bot.wait_for('message',check=lambda message: message.author==ctx.author)
-            if "!" in ans.content or ans.content.lower() in ["n","no"]:
-                await ctx.send("Breeding cancelled!")
-                break
-            if ans.content.lower() in ["y","yes"]:
-                c.execute(f"Select *,rowid from '{ctx.author.id}'")
-                r=c.fetchall()
-                num1=r[int(num1)-1][24]
-                num2=r[int(num2)-1][24]
-                num=[num1,num2]
-                num.sort()
-                c.execute(f"delete from '{ctx.author.id}' where rowid={num[1]}")
-                db.commit()
-                c.execute(f"delete from '{ctx.author.id}' where rowid={num[0]}")
-                db.commit()
-                c.execute(f"""INSERT INTO "{ctx.author.id}" VALUES (
-                "{p.name}",
-                "{p.nickname}",
-                "{p.level}",
-                "{p.hpiv}",
-                "{p.atkiv}",
-                "{p.defiv}",
-                "{p.spatkiv}",
-                "{p.spdefiv}",
-                "{p.speediv}",
-                "{p.hpev}",
-                "{p.atkev}",
-                "{p.defev}",
-                "{p.spatkev}",
-                "{p.spdefev}",
-                "{p.speedev}",
-                "{p.ability}",
-                "{p.nature}",
-                "{p.shiny}",
-                "{p.item}",
-                "{p.gender}",
-                "{p.tera}",
-                "Custom",
-                "{p.moves}",
-                "{m[14]}",
-                "{len(r)+1}")""")
-                db.commit()
-                await ctx.send("Breeding successful!")
-                break
-    else:
-        await ctx.send(f" You can't breed a {mon1.gender} {mon1.name} with a {mon2.gender} {mon2.name}!")
-    
-async def pokonvert(ctx,num=None):
-    if num!=None:
-        num=int(num)
-    dt=sqlite3.connect("pokemondata.db")
-    db=sqlite3.connect("owned.db")
-    cx=dt.cursor()
+            break
+@bot.command(aliases=["gm"])
+async def game(ctx,num=0):
+    await multiplayer(ctx,ctx.author,num)
+@bot.command()
+async def view(ctx,num=1):
+    team=await teamconvert(ctx,ctx.author,ctx.author.id)
+    p=team[num-1]
+    types=p.primaryType
+    if p.secondaryType!="???":
+        types=f"{p.primaryType}/{p.secondaryType}"
+    p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
+    p.totalev=(p.hpev+p.atkev+p.defev+p.spatkev+p.spdefev+p.speedev)  
+    infos=discord.Embed(title=f"#{num} {p.nickname} Lv.{p.level}", description=f"""**Types:** {types}\n**Tera-Type:** {p.tera}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {p.gender}\n**Held Item:** {p.item}\n**HP:** {p.hp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508""")
+    infos.set_thumbnail(url=ctx.author.avatar)
+    infos.set_image(url=p.sprite)
+    await ctx.author.send(embed=infos)
+@bot.command(aliases=["hp"])   
+async def hpbar(ctx,hp=100,maxhp=100):
+    em=discord.Embed(title="Pikachu",description="<:HP:1107296292243255356>"+"<:GREEN:1107296335780139113>"*int((hp/maxhp)*10)+"<:GREY:1107331848360689747>"*(10-int((hp/maxhp)*10))+"<:END:1107296362988580907>") 
+    await ctx.send(embed=em)
+@bot.command(aliases=["tm"])   
+async def team(ctx,a=1,b=2,c=3,d=4,e=5,f=6):
+    tm=[a,b,c,d,e,f] 
+    mx=max(tm)
+    team=f"{tm}"
+    db=sqlite3.connect("playerdata.db")
     c=db.cursor()
-    allmon=[]
+    dt=sqlite3.connect("owned.db")
+    ct=dt.cursor()
+    ct.execute(f"select * from '{ctx.author.id}'")
+    m=ct.fetchall()
+    if mx>len(m):
+        await ctx.send("Some pokémons don't exist.")
+    elif len(tm)==6:
+        c.execute(f"""update '{ctx.author.id}' set squad="{team}" """)
+        db.commit()
+        await ctx.send("Team update successful!")
+
+@bot.command(aliases=["pr"])       
+async def profile(ctx):
+    db=sqlite3.connect("playerdata.db")
+    c=db.cursor()
     c.execute(f"select * from '{ctx.author.id}'")
-    allmon=c.fetchall()
-    if num==None:
-        num=len(allmon)
-    if len(allmon)<num:
-        await ctx.send("Invalid Pokémon.")
-    if len(allmon)>=num:
-        n=allmon[num-1]
-        cx.execute(f"select * from 'wild' where name='{n[0]}' ")
-        m=cx.fetchall()[0]
-        p=Pokemon(name=m[0],nickname=n[1],primaryType=m[1],secondaryType=m[2],level=m[3],hp=m[4],atk=m[5],defense=m[6],spatk=m[7],spdef=m[8],speed=m[9],moves=n[22], ability=n[15],sprite=m[12],gender=n[19],tera=n[20],maxiv="Custom",item=n[18],shiny=n[17],nature=n[16],hpiv=n[3],atkiv=n[4],defiv=n[5],spatkiv=n[6],spdefiv=n[7],speediv=n[8],hpev=n[9],atkev=n[10],defev=n[11],spatkev=n[12],spdefev=n[13],speedev=n[14])
-    return p,allmon
-                   
-keep_alive()
-bot.run(token)       
+    det=c.fetchone()
+    data=discord.Embed(title=f"{ctx.author.display_name}'s Profile:", description=f"**Balance:** {det[0]} ¥")
+    try:
+        team=await teamconvert(ctx,ctx.author,ctx.author.id)
+        tm=""
+        n=0
+        for i in team:
+            n+=1
+            tm+=f"#{n} {i.name}\n"
+        data.add_field(name="Current Team:",value=tm)
+    except:
+        data.add_field(name="Current Team:",value="Not available")
+    data.set_thumbnail(url=ctx.author.avatar)
+    await ctx.send(embed=data)
+             
+     
+async def teamconvert(ctx,p,id):
+    db=sqlite3.connect("playerdata.db")
+    c=db.cursor()
+    c.execute(f"select squad from '{id}'")
+    lt=c.fetchone()
+    lt=eval(lt[0])
+    team=[]
+    for i in lt:
+        m=await pokonvert(ctx,p,i)
+        m=m[0]
+        team.append(m)
+    return team
     
+async def multiplayer(ctx,p1,p2):
+    field=Field()
+    p1team=await teamconvert(ctx,p1,p1.id)
+    if isinstance(p2, int):
+        tr2=await gameteam(ctx,p2)
+    else:
+        p2team=await teamconvert(ctx,p2,p2.id)
+        tr2=Trainer(p2.display_name,p2team,"Earth",sprite=p2.avatar,member=p2)
+    tr1=Trainer(p1.display_name,p1team,"Earth",sprite=p1.avatar,member=p1)
+    intro=discord.Embed(title=f"{tr1.name} vs {tr2.name}")
+    intro.set_thumbnail(url="https://cdn.discordapp.com/attachments/1102579499989745764/1103853991760248924/VS.png")
+    intro.add_field(name="Task:",value="Choose your lead pokémon! Check your DM!")
+    intro.set_footer(text=f"Location: {field.location} | Weather: {field.weather} | Terrain: {field.terrain}")
+    await ctx.send(embed=intro)
+    p2team=tr2.pokemons
+    p1leadoptions=""
+    p2leadoptions=""
+    n1=0
+    n2=0
+    for i in p1team:
+        n1+=1
+        p1leadoptions+=f"#{n1} {i.name}\n"
+    for i in p2team:
+        n2+=1
+        p2leadoptions+=f"#{n2} {i.name}\n"
+    p1leadem=discord.Embed(title="Choose your lead pokémon!", description=p1leadoptions) 
+    p1leadem.set_footer(text="Enter the number until you get the confirmation messaage!")
+    if tr2.ai==False:
+        p2leadem=discord.Embed(title="Choose your lead pokémon!", description=p2leadoptions)
+        p2leadem.set_footer(text="Enter the number until you get the confirmation messaage!")
+    x,y=None,None
+    def xcheck(message):
+        return isinstance(message.channel,discord.DMChannel) and message.author==p1
+    if tr2.ai==False:
+        def ycheck(message):
+            return isinstance(message.channel,discord.DMChannel) and message.author==p2                
+    while True:
+        if x==None and tr2.ai==True:
+            await ctx.send(embed=p1leadem) 
+            while True:
+                xnum=await bot.wait_for('message')
+                if xnum.author==ctx.author:
+                    x=tr1.pokemons[int(xnum.content)-1]
+                    break
+        if x==None and tr2.ai==False:
+            await p2.send(f"{tr1.name} is choosing their lead pokémon. Please wait patiently!")
+            await p1.send(embed=p1leadem) 
+            xnum=await bot.wait_for('message',check=xcheck)
+            x=tr1.pokemons[int(xnum.content)-1]
+            if x!=None:
+                await p1.send(f"You chose {x.name} as your lead pokémon.")
+        if x!=None and tr2.ai==True:
+             y=random.choice(tr2.pokemons)     
+        if x!=None and tr2.ai==False:
+            await p1.send(f"{tr2.name} is choosing their lead pokémon. Please wait patiently!")
+            await p2.send(embed=p2leadem)
+            ynum=await bot.wait_for('message',check=ycheck)   
+            y=tr2.pokemons[int(ynum.content)-1]   
+            if x!=None:
+                await p2.send(f"You chose {y.name} as your lead pokémon. Now go back to the server!")
+        if None not in (x,y):
+            break       
+        
+    turn=0        
+    if x.speed>=y.speed:
+        await entryeff(ctx,x,y,tr1,tr2,field,turn)
+        await entryeff(ctx,y,x,tr2,tr1,field,turn)        
+    if y.speed>x.speed:
+        await entryeff(ctx,y,x,tr2,tr1,field,turn)      
+        await entryeff(ctx,x,y,tr1,tr2,field,turn) 
+    lead1=discord.Embed(title=f"{tr1.name}: Go, {x.nickname}!",description=f"{tr1.name} sents out **{x.name}**!")
+    lead1.set_image(url=x.sprite)   
+    lead1.set_thumbnail(url=tr1.sprite)
+    lead2=discord.Embed(title=f"{tr2.name}: Go, {y.nickname}!", description=f"{tr2.name} sents out **{y.name}**!")
+    lead2.set_image(url=y.sprite)
+    lead2.set_thumbnail(url=tr2.sprite)     
+    if x.speed>=y.speed:
+        await ctx.send(embed=lead1)
+        await ctx.send(embed=lead2)
+    if y.speed>x.speed:
+        await ctx.send(embed=lead2)
+        await ctx.send(embed=lead1)    
+    while True:
+        turn+=1
+        bg=int("FFFFFF",16)
+        if field.terrain in ["Normal"]:
+            bg=int("E5E7E2",16)
+        if field.weather in ["Clear","None"]:
+            bg=int("E5E7E2",16)
+        if field.weather=="Cloudy": 
+            bg=int("E5E7E2",16)
+        if field.terrain=="Misty":
+            bg=int("FEB8B7",16)
+        if field.terrain=="Psychic":
+            bg=int("BD61E6",16)
+        if field.terrain=="Electric":
+            bg=int("D5CD73",16)
+        if field.terrain=="Grassy":
+            bg=int("9CF7BD",16)
+        if field.weather=="Strong Winds":
+            bg=int("90FFF0",16)
+        if field.weather=="Extreme Sunlight":
+            bg=int("FF5E20",16)
+        if field.weather=="Heavy Rain":
+            bg=int("0790FF",16)
+        if field.weather in ["Hail","Snowstorm"]:
+            if field.weather=="Snowstorm":
+                bg=int("CCECFF",16)
+            if field.weather=="Hail":
+                bg=int("7EC8FF",16)
+        if field.weather=="Rainy":
+            bg=int("32C7FF",16)
+        if field.weather=="Sunny":
+            bg=int("FAFF6C",16)
+        if field.weather=="Sandstorm":
+            bg=int("CCAF5E",16)
+        turnem=discord.Embed(title=f"Turn: {turn}", description=f"**Location:** {field.location}\n**Weather:** {field.weather}\n**Terrain:** {field.terrain}\n",color=bg)
+        await ctx.send(embed=turnem)
+        if x.protect==True:
+            x.protect=False
+        if y.protect==True:
+            y.protect=False
+        action1=None
+        action2=None
+        while action1==None or action2==None:
+            if action1 not in [1,2]:
+                action1=await action(bot,ctx,tr1,tr2,x,y)
+            if action2 not in [1,2]:
+                action2=await action(bot,ctx,tr2,tr1,y,x)     
+        if action1==3 and action2!=3:
+            break
+        if action2==3 and action1!=3:
+            break 
+        em1=""
+        em2=""
+        if tr2.ai==False:
+            await tr1.member.send("Please wait...")
+            await tr2.member.send("Please wait...")
+        if action1==8:
+            x,em1=await maxtrans(ctx,x,tr1,turn)
+            action1=1
+        if action1==7:
+            action1=1
+        if action1==6:
+            x,em1=await megatrans(ctx,x,y,tr1,tr2,field,turn)
+            action1=1
+        if action1==9:
+            x,em1=await teratrans(ctx,x,tr1)
+            action1=1
+        if action2==8:
+            y,em2=await maxtrans(ctx,y,tr2,turn)
+            action2=1
+        if action2==7:
+            action2=1
+        if action2==6:
+            y,em2=await megatrans(ctx,y,x,tr2,tr1,field,turn)
+            action2=1
+        if action2==9:
+            y,em2=await teratrans(ctx,y,tr2)
+            action2=1
+        if action1==2 and len(tr1.pokemons)==1:
+            action1=1
+        if action2==2 and len(tr2.pokemons)==1:
+            action2=1
+        if em1!="":
+            await ctx.send(embed=em1)     
+        if em2!="":
+            await ctx.send(embed=em2)
+        if action1==1 and action2==1:
+            if tr2.ai==True:
+                await advscore(ctx,x,y,tr1,tr2,turn,bg)
+                await score(ctx,y,x,tr2,tr1,turn,bg)
+            if tr2.ai==False:
+                await score(ctx,x,y,tr1,tr2,turn,bg)
+                await score(ctx,y,x,tr2,tr1,turn,bg)
+                await advscore(ctx,x,y,tr1,tr2,turn,bg)
+                await advscore(ctx,y,x,tr2,tr1,turn,bg)
+            choice1="None"
+            choice2="None"
+            choice1=await fchoice(ctx,bot,x,y,tr1,tr2,field)
+            if choice1!="None" and tr2.ai==False:
+                await tr1.member.send(f"{x.nickname} will use {choice1}!")
+            choice2=await fchoice(ctx,bot,y,x,tr2,tr1,field)
+            if choice2!="None" and tr2.ai==False:
+                await tr2.member.send(f"{y.nickname} will use {choice2}!")
+            xPriority=0
+            yPriority=0
+            if y.ability=="Quick Draw":
+                yPriority=random.randint(1,100)
+                if yPriority>80:
+                    yPriority=True
+            if x.ability=="Quick Draw":
+                xPriority=random.randint(1,100)
+                if xPriority>20:
+                    xPriority=True
+            if x.item=="Quick Claw":
+                xPriority=random.randint(1,100)
+                if xPriority>82:
+                    xPriority=True
+            if y.item=="Quick Claw":
+                yPriority=random.randint(1,100)
+                if yPriority>82:
+                    yPriority=True
+            if y.item=="Quick Claw" and y.ability=="Quick Draw":
+                yPriority=random.randint(1,100)
+                if yPriority>64:
+                    yPriority=True
+            if x.item=="Quick Claw" and x.ability=="Quick Draw":
+                xPriority=random.randint(1,100)
+                if xPriority>64:
+                    xPriority=True
+            if (choice1 in typemoves.prioritymove and choice2 not in typemoves.prioritymove) or x.priority is True or (x.ability=="Prankster" and choice1 in typemoves.statusmove and "Dark" not in (y.primaryType,y.secondaryType)) or (choice1 in typemoves.firemoves and x.ability=="Blazing Soul") or (choice1 in typemoves.flyingmoves and x.ability=="Gale Wings") or (field.terrain=="Grassy" and choice1=="Grassy Glide") or (x.ability=="Triage" and choice1 in typemoves.healingmoves) or (choice2 in typemoves.negprioritymove) or (xPriority==True) or (choice2 in typemoves.statusmove and y.ability=="Mycelium Might") or y.item=="Lagging Tail":
+                await weather(ctx,field,bg)   
+                x,y=await attack(ctx,bot,x,y,tr1,tr2,choice1,choice2,field,turn)
+                await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                if x.hp<=0:
+                    x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                    if len(tr1.pokemons)==0:
+                        await winner(ctx,tr2,tr1)
+                        break
+                if y.hp<=0:
+                    y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                    if len(tr2.pokemons)==0:
+                        await winner(ctx,tr1,tr2)
+                        break 
+                elif y.hp>0:                     
+                    y,x=await attack(ctx,bot,y,x,tr2,tr1,choice2, choice1,field,turn)
+                    await effects (ctx,x,y,tr1,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                    await prebuff(ctx,y,x,tr2,tr1,turn,field)   
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break 
+                if y.hp<=0:
+                    y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                    await effects(ctx,x,y,tr1,turn)
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break
+                    if len(tr2.pokemons)==0:
+                        await winner(ctx,tr1,tr2)
+                        break
+                x.priority=False       
+            elif (choice2 in typemoves.prioritymove and choice1 not in typemoves.prioritymove) or x.priority is True or (x.ability=="Prankster" and choice2 in typemoves.statusmove and "Dark" not in (x.primaryType,x.secondaryType)) or (choice2 in typemoves.firemoves and y.ability=="Blazing Soul") or (choice2 in typemoves.flyingmoves and y.ability=="Gale Wings") or (field.terrain=="Grassy" and choice2=="Grassy Glide") or (y.ability=="Triage" and choice2 in typemoves.healingmoves) or (choice1 in typemoves.negprioritymove) or (yPriority==True) or (choice1 in typemoves.statusmove and x.ability=="Mycelium Might") or x.item=="Lagging Tail":
+                await weather(ctx,field,bg)   
+                y,x=await attack(ctx,bot,y,x,tr2,tr1,choice2, choice1,field,turn)
+                await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                if y.hp<=0:
+                    y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                    if len(tr2.pokemons)==0:
+                        await winner(ctx,tr1,tr2)
+                        break 
+                if x.hp<=0:
+                    x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                    if len(tr1.pokemons)==0:
+                        await winner(ctx,tr2,tr1)
+                        break      
+                elif x.hp>0:                     
+                    x,y=await attack(ctx,bot,x,y,tr1,tr2,choice1,choice2,field,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    await effects (ctx,x,y,tr1,turn)
+                    await prebuff(ctx,y,x,tr2,tr1,turn,field)  
+                    await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break 
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break 
+                if y.hp<=0:
+                    y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break
+                    if len(tr1.pokemons)==0:
+                        await winner(ctx,tr2,tr1)
+                        break
+                y.priority=False        
+                
+            elif x.speed>=y.speed and field.trickroom==False:
+                await weather(ctx,field,bg)        
+                x,y=await attack(ctx,bot,x,y,tr1,tr2,choice1,choice2,field,turn)                         
+                await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                if x.hp<=0:
+                    x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                    if len(tr1.pokemons)==0:
+                        await winner(ctx,tr2,tr1)
+                        break       
+                elif y.hp>0:                    
+                    y,x=await attack(ctx,bot,y,x,tr2,tr1,choice2, choice1,field,turn)
+                    await effects (ctx,x,y,tr1,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                    await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break       
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break
+                if y.hp<=0:
+                    y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                    await effects (ctx,x,y,tr1,turn)
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break      
+                    if len(tr2.pokemons)==0:
+                        await winner(ctx,tr1,tr2)
+                        break   
+            elif x.speed<y.speed and field.trickroom==True:
+                await weather(ctx,field,bg)
+                x,y=await attack(ctx,bot,x,y,tr1,tr2,choice1,choice2,field,turn)
+                await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                if x.hp<=0:
+                    x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                    if len(tr1.pokemons)==0:
+                        await winner(ctx,tr2,tr1)
+                        break   
+                elif y.hp>0:                     
+                    y,x=await attack(ctx,bot,y,x,tr2,tr1,choice2, choice1,field,turn)
+                    await effects (ctx,x,y,tr1,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                    await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break   
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break
+                if y.hp<=0:
+                    y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                    await effects (ctx,x,y,tr1,turn)
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break   
+                    if len(tr2.pokemons)==0:
+                        await winner(ctx,tr1,tr2)
+                        break
+                        
+            elif y.speed>x.speed and field.trickroom==False:
+                await weather(ctx,field,bg)
+                y,x=await attack(ctx,bot,y,x,tr2,tr1,choice2, choice1,field,turn)
+                await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                if y.hp<=0:
+                    y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                    if len(tr2.pokemons)==0:
+                        await winner(ctx,tr1,tr2)
+                        break
+                elif x.hp>0:                    
+                    x,y=await attack(ctx,bot,x,y,tr1,tr2,choice1,choice2,field,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    await effects (ctx,x,y,tr1,turn)
+                    await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                    await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break   
+                if x.hp<=0:
+                    x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break
+                    if len(tr1.pokemons)==0:
+                        await winner(ctx,tr2,tr1)
+                        break   
+
+            elif y.speed<=x.speed and field.trickroom==True:
+                await weather(ctx,field,bg)
+                y,x=await attack(ctx,bot,y,x,tr2,tr1,choice2, choice1,field,turn)
+                await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                if y.hp<=0:
+                    y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                    if len(tr2.pokemons)==0:
+                        await winner(ctx,tr1,tr2)
+                        break
+                elif x.hp>0:                    
+                    x,y=await attack(ctx,bot,x,y,tr1,tr2,choice1,choice2,field,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    await effects (ctx,x,y,tr1,turn)
+                    await prebuff(ctx,x,y,tr1,tr2,turn,field)
+                    await prebuff(ctx,y,x,tr2,tr1,turn,field)
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break
+                    if x.hp<=0:
+                        x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                        if len(tr1.pokemons)==0:
+                            await winner(ctx,tr2,tr1)
+                            break
+                if x.hp<=0:
+                    x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                    await effects(ctx,y,x,tr2,turn)
+                    if y.hp<=0:
+                        y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                        if len(tr2.pokemons)==0:
+                            await winner(ctx,tr1,tr2)
+                            break
+                    if len(tr1.pokemons)==0:
+                        await winner(ctx,tr2,tr1)
+                        break
+        elif action1==2 and action2==1:
+            choice1="None"
+            if tr2.ai==True:
+                await advscore(ctx,x,y,tr1,tr2,turn,bg)
+                await score(ctx,y,x,tr2,tr1,turn,bg)
+            if tr2.ai==False:
+                await score(ctx,x,y,tr1,tr2,turn,bg)
+                await score(ctx,y,x,tr2,tr1,turn,bg)
+                await advscore(ctx,x,y,tr1,tr2,turn,bg)
+                await advscore(ctx,y,x,tr2,tr1,turn,bg)
+            choice2=await fchoice(ctx,bot,y,x,tr2,tr1,field)
+            await weather(ctx,field,bg)
+            x=await switch(ctx,bot,x,y,tr1,tr2,field,turn)
+            y,x=await attack(ctx,bot,y,x,tr2,tr1,choice2, choice1,field,turn)
+            await effects (ctx,x,y,tr1,turn)
+            await effects(ctx,y,x,tr2,turn)
+            await prebuff(ctx,x,y,tr1,tr2,turn,field)
+            await prebuff(ctx,y,x,tr2,tr1,turn,field)
+            if y.hp<=0:
+                y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                if len(tr2.pokemons)==0:
+                    await winner(ctx,tr1,tr2)
+                    break
+            if x.hp<=0:
+                x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                if len(tr1.pokemons)==0:
+                   await winner(ctx,tr2,tr1)
+                   break
+            y.protect=False
+#tr1 ATTACKS AND tr2 SWITCHES                
+        elif action1==1 and action2==2:
+            choice2="None"
+            if tr2.ai==True:
+                await advscore(ctx,x,y,tr1,tr2,turn,bg)
+                await score(ctx,y,x,tr2,tr1,turn,bg)
+            if tr2.ai==False:
+                await score(ctx,x,y,tr1,tr2,turn,bg)
+                await score(ctx,y,x,tr2,tr1,turn,bg)
+                await advscore(ctx,x,y,tr1,tr2,turn,bg)
+                await advscore(ctx,y,x,tr2,tr1,turn,bg)
+            choice1=await fchoice(ctx,bot,x,y,tr1,tr2,field)
+            await weather(ctx,field,bg)
+            y=await switch(ctx,bot,y,x,tr2,tr1,field,turn)
+            x,y=await attack(ctx,bot,x,y,tr1,tr2,choice1,choice2,field,turn)
+            if x.hp<=0:
+                x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                if len(tr1.pokemons)==0:
+                   await winner(ctx,tr2,tr1)
+                   break
+            await effects (ctx,x,y,tr1,turn)
+            await effects(ctx,y,x,tr2,turn)
+            await prebuff(ctx,x,y,tr1,tr2,turn,field)
+            await prebuff(ctx,y,x,tr2,tr1,turn,field)
+            if x.hp<=0:
+                x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                if len(tr1.pokemons)==0:
+                   await winner(ctx,tr2,tr1)
+                   break
+            if y.hp<=0:
+                y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                if len(tr2.pokemons)==0:
+                    await winner(ctx,tr1,tr2)
+                    break
+            x.protect=False
+#IF BOTH SWITCHES                
+        elif action1==2 and action2==2:
+            if tr2.ai==True:
+                await advscore(ctx,x,y,tr1,tr2,turn,bg)
+                await score(ctx,y,x,tr2,tr1,turn,bg)
+            if tr2.ai==False:
+                await score(ctx,x,y,tr1,tr2,turn,bg)
+                await score(ctx,y,x,tr2,tr1,turn,bg)
+                await advscore(ctx,x,y,tr1,tr2,turn,bg)
+                await advscore(ctx,y,x,tr2,tr1,turn,bg)
+            await weather(ctx,field,bg)
+            if x.speed>=y.speed:
+                x=await switch(ctx,bot,x,y,tr1,tr2,field,turn)  
+                y=await switch(ctx,bot,y,x,tr2,tr1,field,turn)
+            if y.speed>x.speed:
+                y=await switch(ctx,bot,y,x,tr2,tr1,field,turn)
+                x=await switch(ctx,bot,x,y,tr1,tr2,field,turn)  
+            await effects(ctx,y,x,tr2,turn)
+            if y.hp<=0:
+                y=await faint(ctx,bot,y,x,tr2,tr1,field,turn)
+                if len(tr2.pokemons)==0:
+                    await winner(ctx,tr1,tr2)
+                    break
+            await effects (ctx,x,y,tr1,turn)          
+            if x.hp<=0:
+                x=await faint(ctx,bot,x,y,tr1,tr2,field,turn)
+                if len(tr1.pokemons)==0:
+                   await winner(ctx,tr2,tr1)
+                   break            
+keep_alive()
+bot.run(token)    
