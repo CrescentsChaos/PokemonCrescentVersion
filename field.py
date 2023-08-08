@@ -20,7 +20,7 @@ paldea=["Caseeroya Lake","Area Zero","Cabo Poco","Los Platos","Mesagoza","Corton
 special=["Pokémon World Tournament,Unova","Battle Frontier, Hoenn","Battle Frontier, Sinnoh"]
 place=kanto+johto+hoenn+unova+sinnoh+kalos+alola+galar+paldea
 class Field:
-    def __init__(self,name="Stadium",weather="Clear",trickroom=False, terrain="Normal", gravity=False,magicroom=False,mudsport=False,watersport=False,wonderroom=False,rainturn=0,rainendturn=200,sunturn=0,sunendturn=200,sandturn=0, sandendturn=200,hailturn=0,hailendturn=200,grassturn=0,grassendturn=200,eleturn=0,eleendturn=200,troomturn=0,troomendturn=200,psyturn=0,psyendturn=200,misturn=0,misendturn=200,location="None",snowstormturn=0,snowstormendturn=200):
+    def __init__(self,name="Stadium",weather="Clear",trickroom=False, terrain="Normal", gravity=False,magicroom=False,mudsport=False,watersport=False,wonderroom=False,rainturn=0,rainendturn=200,sunturn=0,sunendturn=200,sandturn=0, sandendturn=200,hailturn=0,hailendturn=200,grassturn=0,grassendturn=200,eleturn=0,eleendturn=200,troomturn=0,troomendturn=200,psyturn=0,psyendturn=200,misturn=0,misendturn=200,location="None",snowturn=0,snowendturn=200):
         self.name=name
         self.weather=weather
         self.trickroom=trickroom
@@ -47,8 +47,8 @@ class Field:
         self.troomturn=troomturn
         self.troomendturn=troomendturn
         self.misturn=misturn
-        self.snowstormturn=snowstormturn
-        self.snowstormendturn=snowstormendturn
+        self.snowturn=snowturn
+        self.snowendturn=snowendturn
         self.location=location
         if self.location =="None":
             self.location=random.choices([random.choice(place),random.choice(special)],weights=[10,1],k=1)[0]

@@ -33,13 +33,21 @@ class Trainer:
 		self.twendturn=self.tailturn+4
 		self.rfendturn=self.reflecturn+6
 		self.avendturn=self.auroraturn+6
+		self.sunturn=0
+		self.sunend=0
+		self.rainturn=0
+		self.rainend=0
+		self.sandturn=0
+		self.sandend=0
+		self.hailturn=0
+		self.hailend=0
 		self.item=item
 		if self.item==[]:
 		    self.item=["Full Restore","Full Restore","Full Restore"]
 		if hazard is None:
 		    self.hazard=[]
 		else:
-		    self.hazard=hazard   
+		    self.hazard=hazard  
 	def lightscreenend(self,mon,mon2):
 	       if "Light Clay" not in (mon.item,mon2.item):
 	           self.screenend=self.lsturn+6

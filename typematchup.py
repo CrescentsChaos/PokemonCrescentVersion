@@ -2,7 +2,7 @@ import random
 import discord
 from movelist import *
 from field import *
-
+from plugins import *
 async def weakness(ctx,x,y,field,em):
     eff=1
     ty=1
@@ -24,7 +24,7 @@ async def weakness(ctx,x,y,field,em):
         eff*=2
     if x.use in typemoves.windmoves and y.ability=="Wind Rider" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"]:
         eff*=0
-        await atkchange(y,x,1)
+        await atkchange(em,y,x,1)
         em.add_field(name=f"{x.name}'s {x.ability}!",value="Wind move was boosted!")
     if "Absolute Zero" in (x.ability,y.ability) and x.atktype=="Water" and "Neutralizing Gas" not in (y.ability,x.ability):
         if x.ability=="Absolute Zero":
@@ -162,13 +162,13 @@ async def weakness(ctx,x,y,field,em):
         if x.ability=="Dance of the Specter" and "Neutralizing Gas" not in y.ability:
             eff*=1.2
         if y.ability=="Rattled" and "Neutralizing Gas" not in x.ability:
-            speedchange(y,x,0.5)
+            speedchange(em,y,x,0.5)
         #PURIFYING SALT
         if y.ability=="Purifying Salt" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             eff*=0.5
         #Kasib Berry
         if y.item=="Kasib Berry" and x.ability not in ["Unnerve","As One"]:
-            em.add_field(name=f"Item:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         #Ghost Gem
         if x.item == "Ghost Gem":
@@ -194,27 +194,22 @@ async def weakness(ctx,x,y,field,em):
     if x.atktype=="Electric":
         #Electromorphosis
         if x.atktime>0 and x.ability=="Electromorphosis" and x.speed<y.speed and "Neutralizing Gas" not in y.ability:
-            print(f" 🐸 {x.name}'s {x.ability}!")
             eff*=1.34
         #Motor Drive
         if y.ability=="Motor Drive" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
-            print(f" ⚙️ {y.name}'s {y.ability}!")
-            speedchange(y,x,0.5)
+            speedchange(em,y,x,0.5)
             eff*=0
         #Wonder Guard
         if y.ability=="Wonder Guard" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
-            print(f" 🛡️ {y.name}'s {y.ability}!")
             eff*=0
         #Transistor
         if x.ability=="Transistor" and "Neutralizing Gas" not in y.ability:
-            print(f" 🔋 {x.name}'s {x.ability}.")
             eff*=1.5
         if x.item == "Magnet":
             eff*=1.2
         if y.item=="Wacan Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
             eff*=0.5
-            print(colored(f" 🌽 {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","yellow"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if field.terrain=="Electric" and ((x.ability not in ["Levitate"] and x.ability!="Mold Breaker") and "Flying" not in (x.primaryType,x.secondaryType,x.teraType) or x.grav is True):
             eff*=1.3
@@ -223,13 +218,12 @@ async def weakness(ctx,x,y,field,em):
         if x.item in ["Zap Plate","Battery","Magnet"]:
             eff*=1.2
         if x.item == "Electric Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.ability=="Lightning Rod" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             print(f" ⚡ {y.name}'s {y.ability}.")
-            spatkchange(y,x,0.5)
+            spatkchange(em,y,x,0.5)
  
             eff*=0
         if y.ability=="Volt Absorb" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
@@ -265,18 +259,16 @@ async def weakness(ctx,x,y,field,em):
             print(f" 🛡️ {y.name}'s {y.ability}!")
             eff*=0
         if y.item=="Payapa Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
             eff*=0.5
-            print(colored(f" 🍆  {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","magenta"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if field.terrain=="Psychic" and (x.ability not in ["Levitate"] and "Flying" not in (x.primaryType,x.secondaryType,x.teraType) or x.grav is True):
             eff*=1.3
         if x.item in ["Mind Plate","Twisted Spoon","Soul Dew","Odd Incense"]:
             eff*=1.2
         if x.item == "Psychic Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.primaryType in psychiceff and y.teraType=="???":
             ty*=2
@@ -304,9 +296,8 @@ async def weakness(ctx,x,y,field,em):
         if x.item in ["Never Melt Ice","Icicle Plate"]:
             eff*=1.2
         if y.item=="Yache Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
             eff*=0.5
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","cyan"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if y.ability=="Thick Fat" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             print(f" 🌡️ {y.name}'s {y.ability}!")
@@ -314,9 +305,8 @@ async def weakness(ctx,x,y,field,em):
         if y.ability=="Delta Stream" and "Flying" in (y.primaryType,y.secondaryType) and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             eff*=0.5
         if x.item == "Ice Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.primaryType in iceeff and y.teraType=="???":
             ty*=2
@@ -339,8 +329,7 @@ async def weakness(ctx,x,y,field,em):
             eff*=1.2
         if y.item=="Roseli Berry" and x.ability not in ["Unnerve","As One"]:
             eff*=0.5
-            itemicon(y.item)
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","red"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if "Fairy Aura" in (x.ability,y.ability):
             if y.ability!="Aura Break":
@@ -348,9 +337,8 @@ async def weakness(ctx,x,y,field,em):
             else:
                 eff*=0.67
         if x.item == "Fairy Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.primaryType in fairyeff and y.teraType=="???":
             ty*=2
@@ -369,13 +357,12 @@ async def weakness(ctx,x,y,field,em):
         if x.ability=="Toxic Drain":
             eff*=1.5
         if y.ability=="Rattled":
-            speedchange(y,x,0.5)
+            speedchange(em,y,x,0.5)
         if x.item in ["Black Glasses","Dread Plate"]:
             eff*=1.2
         if y.item=="Colbur Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
             eff*=0.5
-            print(colored(f" 🍇 {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","magenta"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if "Dark Aura" in (x.ability,y.ability):
             if y.ability!="Aura Break":
@@ -383,12 +370,11 @@ async def weakness(ctx,x,y,field,em):
             else:
                 eff*=0.67
         if x.item == "Dark Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.ability=="Justified" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
-            atkchange(y,x,0.5)            
+            atkchange(em,y,x,0.5)            
         if y.primaryType in darkeff and y.teraType=="???":
             ty*=2
         if y.secondaryType in darkeff and y.teraType=="???":
@@ -414,16 +400,15 @@ async def weakness(ctx,x,y,field,em):
             eff*=1.2
         if y.item=="Babiri Berry" and x.ability not in ["Unnerve","As One"]:
             eff*=0.5
-            itemicon(y.item)
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","green"))
+            
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if x.ability=="Steelworker":
             print(f" 🔩 {x.name}'s {x.ability}.")
             eff*=1.5
         if x.item == "Steel Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if x.item in ["Adamant Orb"]:
             eff+=(eff*0.2)
@@ -450,16 +435,15 @@ async def weakness(ctx,x,y,field,em):
         if x.item in ["Dragon Fang","Draco Plate"]:
             eff*=1.2
         if y.item=="Haban Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
+            
             eff*=0.5
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","red"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if field.terrain=="Misty" and (x.ability not in ["Levitate"] and "Flying" not in (x.primaryType,x.secondaryType,x.teraType) or x.grav is True):
             eff*=0.5
         if x.item == "Dragon Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if x.item in ["Adamant Orb","Lustrous Orb","Griseous Orb","Soul Dew"]:
             eff*=1.2
@@ -480,21 +464,19 @@ async def weakness(ctx,x,y,field,em):
     #bug
     if x.atktype=="Bug":
         if y.ability=="Rattled":
-            speedchange(y,x,0.5)
+            speedchange(em,y,x,0.5)
         if y.ability=="Wonder Guard" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             print(f" 🛡️ {y.name}'s {y.ability}!")
             eff*=0
         if x.item in ["Silver Powder","Insect Plate"]:
             eff*=1.2
         if y.item=="Tanga Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
             eff*=0.5
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","green"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if x.item == "Bug Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if x.ability=="Swarm" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             if x.hp<=(x.maxhp/3):
@@ -517,45 +499,42 @@ async def weakness(ctx,x,y,field,em):
         if x.ability=="Water Bubble":
             eff*=2
         if y.item=="Luminous Moss":
-            spdefchange(y,x,0.5)
-            itemicon(y.item)
+            spdefchange(em,y,x,0.5)
+            
             print(f" Luminous Moss absorbed {x.name}'s Water-type moves energy and raised {y.name}'s Special Defense!")
             y.item+="[Used]"
         if x.ability=="Gemstone":
             eff*=1.3
             ch=random.randint(1,10)
             if ch<3:
-                defchange(y,x,-0.5)
+                defchange(em,y,x,-0.5)
         if y.item=="Absorb Bulb":
-            spatkchange(y,x,0.5)
+            spatkchange(em,y,x,0.5)
             print(f" Absorb Bulb absorbed {x.name}'s Water-type moves energy and raised {y.name}'s Special Attack!")
             y.item+="[Used]"
-        
         if y.ability=="Wonder Guard" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             print(f" 🛡️ {y.name}'s {y.ability}!")
             eff*=0
         if y.ability=="Steam Engine" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             print(f" 🚂 {y.name}'s {y.ability}!")
-            speedchange(y,x,1.5)
+            speedchange(em,y,x,1.5)
             
         if x.item in  ["Mystic Water","Splash Plate","Lustrous Orb","Wave Incense","Sea Incense"]:
             eff*=1.2
         if y.item=="Passho Berry" and x.ability not in ["Unnerve","As One"]:
             eff*=0.5
-            itemicon(y.item)
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","blue"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if field.weather=="Desolate Land" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves  and "Cloud Nine" not in (x.ability,y.ability):
             eff*=0
         if x.item == "Water Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.ability in ["Storm Drain","Water Absorb","Dry Skin","Water Compaction","Evaporate"] and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             if y.ability=="Water Compaction":
                 print(f" 🚱 {y.name}'s {y.ability}.")
-                defchange(y,x,1)
+                defchange(em,y,x,1)
                 
                 eff*=0.5
             if y.ability=="Dry Skin" and "Cloud Nine" not in (x.ability,y.ability):
@@ -566,8 +545,7 @@ async def weakness(ctx,x,y,field,em):
                     print(f" {y.name} gained some health.")
             if y.ability in ["Storm Drain","Evaporate"]:
                 eff*=0
-                print(f" {y.name}'s {y.ability}.")
-                spatkchange(y,x,0.5)
+                spatkchange(em,y,x,0.5)
                
             if y.ability=="Water Absorb":
                 eff*=0
@@ -616,17 +594,15 @@ async def weakness(ctx,x,y,field,em):
         if x.item in ["Soft Sand","Earth Plate"]:
             eff*=1.2
         if y.item=="Shuca Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
+            
             eff*=0.5
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","yellow"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if x.item == "Ground Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if (y.ability in ["Levitate","Winged"] and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves and x.grav is not True):
-            print(f" {y.name}'s {y.ability}.")
             eff*=0
         if y.primaryType in groundeff and y.teraType=="???":
             ty*=2
@@ -651,21 +627,19 @@ async def weakness(ctx,x,y,field,em):
         if x.item in ["Miracle Seed","Meadow Plate","Rose Incense"]:
             eff*=1.2
         if y.item=="Rindo Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
+            
             eff*=0.5
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","green"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if field.terrain=="Grassy" and (x.ability not in ["Levitate"] and "Flying" not in (x.primaryType,x.secondaryType,x.teraType) or x.grav is True):
             eff*=1.3
         if x.item == "Grass Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.ability=="Sap Sipper":
-            print(f" {y.name}'s {y.ability}.")
             eff*=0
-            atkchange(y,x,0.5)            
+            atkchange(em,y,x,0.5)            
         if x.ability=="Overgrow":
             if x.hp<=(x.maxhp/3):
                 print(f" 🌿 {x.name}'s {x.ability}.")
@@ -690,13 +664,12 @@ async def weakness(ctx,x,y,field,em):
             eff*=1.2
         if y.item=="Coba Berry" and x.ability not in ["Unnerve","As One"]:
             eff*=0.5
-            itemicon(y.item)
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","cyan"))
+            
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if x.item == "Flying Gem":
             eff*=1.5
-            itemicon(x.item)
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.primaryType in flyingeff and y.teraType=="???":
             ty*=2
@@ -714,7 +687,7 @@ async def weakness(ctx,x,y,field,em):
     if x.atktype=="Fire":
         if y.ability=="Well-Baked Body":
             print(f" 🥯 {y.name}'s {y.ability}!")
-            defchange(y,x,1)
+            defchange(em,y,x,1)
             eff*=0
         if x.ability=="Radiant Blaze" or x.flashfire==True:
             eff*=1.5
@@ -732,14 +705,14 @@ async def weakness(ctx,x,y,field,em):
             eff*=2
         if y.ability=="Steam Engine" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             print(f" 🚂 {y.name}'s {y.ability}!")
-            speedchange(y,x,1.5)
+            speedchange(em,y,x,1.5)
          
         if x.item in ["Charcoal","Flame Plate"]:
             eff*=1.2
         if y.ability=="Water Bubble":
             eff*=0.5
         if y.item=="Occa Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
+            
             eff*=0.5
             print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","red"))
             y.item+="[Used]"
@@ -752,9 +725,8 @@ async def weakness(ctx,x,y,field,em):
         if field.weather=="Primordial Sea" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves and "Cloud Nine" not in (x.ability,y.ability):
             eff*=0
         if x.item == "Fire Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if x.ability=="Blaze" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             if x.hp<=(x.maxhp/3):
@@ -762,7 +734,7 @@ async def weakness(ctx,x,y,field,em):
                 eff*=2.25
         if y.ability=="Thermal Exchange" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             print(f" 🌡️ {y.name}'s {y.ability}.")
-            atkchange(y,x,0.5)
+            atkchange(em,y,x,0.5)
         if y.ability=="Flash Fire" and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             print(f" 🔥 {y.name}'s {y.ability}.")
             y.flashfire=True
@@ -789,14 +761,13 @@ async def weakness(ctx,x,y,field,em):
         if x.item in ["Poison Barb","Toxic Plate"]:
             eff*=1.2
         if y.item=="Kebia Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
+            
             eff*=0.5
-            print(colored(f" 🍐 {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","green"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if x.item == "Poison Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.primaryType in poisoneff and y.teraType=="???":
             ty*=2
@@ -834,16 +805,15 @@ async def weakness(ctx,x,y,field,em):
         if x.item in ["Hard Stone","Stone Plate","Rock Incense"]:
             eff*=1.2
         if y.item=="Charti Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
+            
             eff*=0.5
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","yellow"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if y.ability=="Delta Stream" and "Flying" in (y.primaryType,y.secondaryType) and x.ability not in ["Mold Breaker","Teravolt","Turboblaze","Propeller Tail","Stalwart","Neutralizing Gas"] and x.use not in typemoves.abilityigmoves:
             eff*=0.5
         if x.item == "Rock Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.primaryType in rockeff and y.teraType=="???":
             ty*=2
@@ -869,13 +839,12 @@ async def weakness(ctx,x,y,field,em):
             eff*=1.2
         if y.item=="Chilan Berry" and x.ability not in ["Unnerve","As One"]:
             eff*=0.5
-            itemicon(y.item)
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","yellow"))
+            
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if x.item == "Normal Gem":
             eff*=1.5
-            itemicon(x.item)
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.primaryType in normaleff and y.teraType=="???":
             ty*=2
@@ -902,14 +871,13 @@ async def weakness(ctx,x,y,field,em):
         if x.item in["Black Belt","Fist Plate"]:
             eff*=1.2
         if y.item=="Chople Berry" and x.ability not in ["Unnerve","As One"]:
-            itemicon(y.item)
+            
             eff*=0.5
-            print(colored(f" {y.name}'s {y.item} weakened the damage of {x.atktype}-type move!!","red"))
+            em.add_field(name=f"{await itemicon(y.item)} {y.nickname}'s {y.item}:",value=f"{y.name}'s {y.item} weakened the damage of {x.atktype}-type move!")
             y.item+="[Used]"
         if x.item == "Fighting Gem":
-            itemicon(x.item)
             eff*=1.5
-            print(f" 💎 {x.item} strengthened the damage of {x.name}'s {x.atktype}-type moves!")
+            em.add_field(name="Item:",value=f"{x.item} strengthened the damage of {x.nickname}'s {x.atktype}-type moves!")
             x.item+="[Used]"
         if y.primaryType in fightingeff and y.teraType=="???":
             ty*=2
@@ -927,8 +895,8 @@ async def weakness(ctx,x,y,field,em):
             ty*=0     
     if y.hp!=0:
         if y.ability=="Weak Armor" and x.atkcat=="Physical" and eff!=0:
-            await defchange (y,y,-1)
-            await speedchange (y,y,1)
+            await defchange(em,y,y,-1)
+            await speedchange(em,y,y,1)
     if ty>=2 and eff!=0:
         em.add_field(name="Effectiveness:",value=f"It's super effective!")
         if x.ability=="Primal Armor":
@@ -939,14 +907,13 @@ async def weakness(ctx,x,y,field,em):
             y.hp+=round(y.maxhp/4)
             y.item+="[Used]"
         if y.item=="Weakness Policy":
-            itemicon(y.item)
+            
             y.item+="[Used]"
-            atkchange(y,x,1)
-            spatkchange(y,x,1)
+            atkchange(em,y,x,1)
+            spatkchange(em,y,x,1)
         if x.item=="Expert Belt":
             eff*=1.2
         if y.ability in ["Solid Rock","Filter","Prism Armor"]:
-            print(f" {y.name}'s {y.ability}.")
             eff*=0.75
     elif 0<ty<1 and eff!=0:
         em.add_field(name="Effectiveness:",value=f"It's not very effective...")
@@ -1004,7 +971,7 @@ async def isCrit(em,tr1,x,y,num="None"):
         if y.spdefb>1:
             y.spdef/=muldict[y.spdefb]
         if y.ability=="Anger Point":
-            await atkchange(y,x,6)
+            await atkchange(em,y,x,6)
         if x.ability=="Sniper":
             return 3
         else:
@@ -1018,42 +985,112 @@ async def randroll():
     rr=random.randint(85,100)       
     return rr/100
                         
-async def atkchange(x,y,amount):
+async def atkchange(em,x,y,amount):
+    if x.ability=="Contrary":
+        amount=-amount
     if amount<0 and x.ability in ["Clear Body","Big Pecks","White Smoke","Full Metal Body","Flower Veil"]:
-        amount=0
+        amount=0        
     x.atkb+=amount
+    if x.atkb<6:
+        if amount==1:
+            em.add_field(name="Attack Increase:",value=f"{x.nickname}'s attack rose!")
+        elif amount==2:
+            em.add_field(name="Attack Increase:",value=f"{x.nickname}'s attack sharply rose!")
+        elif amount>=3:
+            em.add_field(name="Attack Increase:",value=f"{x.nickname}'s attack drastically rose!")
+    if x.atkb>-6:
+        if amount==-1:
+            em.add_field(name="Attack Drop:",value=f"{x.nickname}'s attack fell!")
+        elif amount<=-2:
+            em.add_field(name="Attack Drop:",value=f"{x.nickname}'s attack harshly fell!")               
     if x.atkb<-6:
         x.atkb=-6
     if x.atkb>6:
         x.atkb=6  
-async def defchange(x,y,amount):
+async def defchange(em,x,y,amount):
+    if x.ability=="Contrary":
+        amount=-amount
     if amount<0 and x.ability in ["Clear Body","Big Pecks","White Smoke","Full Metal Body","Flower Veil"]:
         amount=0
     x.defb+=amount
+    if x.defb<6:
+        if amount==1:
+            em.add_field(name="Defense Increase:",value=f"{x.nickname}'s defense rose!")
+        elif amount==2:
+            em.add_field(name="Defense Increase:",value=f"{x.nickname}'s defense sharply rose!")
+        elif amount>=3:
+            em.add_field(name="Defense Increase:",value=f"{x.nickname}'s defense drastically rose!")
+    if x.defb>-6:
+        if amount==-1:
+            em.add_field(name="Defense Drop:",value=f"{x.nickname}'s defense fell!")
+        elif amount<=-2:
+            em.add_field(name="Defense Drop:",value=f"{x.nickname}'s defense harshly fell!") 
     if x.defb<-6:
         x.defb=-6
     if x.defb>6:
         x.defb=6  
-async def spatkchange(x,y,amount):
+async def spatkchange(em,x,y,amount):
+    if x.ability=="Contrary":
+        amount=-amount
     if amount<0 and x.ability in ["Clear Body","Big Pecks","White Smoke","Full Metal Body","Flower Veil"]:
         amount=0
     x.spatkb+=amount
+    if x.spatkb<6:
+        if amount==1:
+            em.add_field(name="Special Attack Increase:",value=f"{x.nickname}'s special attack rose!")
+        elif amount==2:
+            em.add_field(name="Special Attack Increase:",value=f"{x.nickname}'s special attack sharply rose!")
+        elif amount>=3:
+            em.add_field(name="Special Attack Increase:",value=f"{x.nickname}'s special attack drastically rose!")
+    if x.spatkb>-6:
+        if amount==-1:
+            em.add_field(name="Special Attack Drop:",value=f"{x.nickname}'s special attack fell!")
+        elif amount<=-2:
+            em.add_field(name="Special Attack Drop:",value=f"{x.nickname}'s special attack harshly fell!") 
     if x.spatkb<-6:
         x.spatkb=-6
     if x.spatkb>6:
         x.spatkb=6  
-async def spdefchange(x,y,amount):
+async def spdefchange(em,x,y,amount):
+    if x.ability=="Contrary":
+        amount=-amount
     if amount<0 and x.ability in ["Clear Body","Big Pecks","White Smoke","Full Metal Body","Flower Veil"]:
         amount=0
     x.spdefb+=amount
+    if x.spdefb<6:
+        if amount==1:
+            em.add_field(name="Special Defense Increase:",value=f"{x.nickname}'s special defense rose!")
+        elif amount==2:
+            em.add_field(name="Special Defense Increase:",value=f"{x.nickname}'s special defense sharply rose!")
+        elif amount>=3:
+            em.add_field(name="Special Defense Increase:",value=f"{x.nickname}'s special defense drastically rose!")
+    if x.spdefb>-6:
+        if amount==-1:
+            em.add_field(name="Special Defense Drop:",value=f"{x.nickname}'s special defense fell!")
+        elif amount<=-2:
+            em.add_field(name="Special Defense Drop:",value=f"{x.nickname}'s special defense harshly fell!") 
     if x.spdefb<-6:
         x.spdefb=-6
     if x.spdefb>6:
         x.spdefb=6  
-async def speedchange(x,y,amount):
+async def speedchange(em,x,y,amount):
+    if x.ability=="Contrary":
+        amount=-amount
     if amount<0 and x.ability in ["Clear Body","Big Pecks","White Smoke","Full Metal Body","Flower Veil"]:
         amount=0
     x.speedb+=amount
+    if x.speedb<6:
+        if amount==1:
+            em.add_field(name="Speed Increase:",value=f"{x.nickname}'s speed rose!")
+        elif amount==2:
+            em.add_field(name="Speed Increase:",value=f"{x.nickname}'s speed sharply rose!")
+        elif amount>=3:
+            em.add_field(name="Speed Increase:",value=f"{x.nickname}'s speed drastically rose!")
+    if x.speedb>-6:
+        if amount==-1:
+            em.add_field(name="Speed Drop:",value=f"{x.nickname}'s speed fell!")
+        elif amount<=-2:
+            em.add_field(name="Speed Drop:",value=f"{x.nickname}'s speed harshly fell!") 
     if x.speedb<-6:
         x.speedb=-6
     if x.speedb>6:
