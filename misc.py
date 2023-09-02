@@ -1,21 +1,226 @@
 from intro import *
-@bot.command(aliases=["fr"])
-async def forme(ctx,num=1):
-    "Changes forms"
+@bot.tree.command(name="batchrelease",description="Release following pokémons.")
+@app_commands.describe(mons="Pokémons that you wanna release!")
+async def batchrelease(ctx:discord.Interaction,mons:str):
     db=sqlite3.connect("owned.db")
     c=db.cursor()
-    num=await row(ctx,num,c)
-    c.execute(f"select * from '{ctx.author.id}' where rowid={num}")
-    mons=c.fetchone()
-    mon=mons[0]
-    if "Therian" in mon:
-        mon=mon.replace("Therian ","")
-        c.execute(f"""Update `{ctx.author.id}` set name="{mon}" where rowid={num}""")        
-        db.commit()
-    elif mon in ["Thundurus","Landorus","Tornadus","Enamorus"]:
-        mon="Therian "+mon
-        c.execute(f"""Update `{ctx.author.id}` set name="{mon}" where rowid={num}""")        
-        db.commit()
+    mons=mons.split(" ")
+    rel=[]
+    txt="Are you sure you want to release these pokemon(s)? Write (yes/confirm) to release!"
+    for i in mons:
+        rel.append(await row(ctx,int(i),c))
+    for i in rel:
+        c.execute(f"select * from '{ctx.user.id}' where rowid={i}")
+        mon=c.fetchone()
+        txt+=f"\n**{mon[0]}** - {mon[25]}%"
+    em=discord.Embed(title="Batch Release:",description=txt,color=0xff0000)
+    em.set_image(url="https://cdn.discordapp.com/attachments/1102579499989745764/1142222584159674569/image_search_1692397466636.png")
+    await ctx.response.send_message(embed=em)
+    rsponse = await bot.wait_for('message', check=lambda message: message.author == ctx.user)
+    if rsponse.content.lower() in ["yes","confirm"]:
+        for i in rel:
+            c.execute(f"delete from '{ctx.user.id}' where rowid={i}")
+            db.commit()
+        await ctx.channel.send(f"Released {len(rel)} pokémon(s) successfully!")
+    else:
+        await ctx.channel.send("Release cancelled!")  
+@bot.tree.command(name="abilityinfo",description="Shows ability description.")
+@app_commands.describe(ability="Name of the ability.")
+async def abilityinfo(ctx:discord.Interaction,ability:str):
+    ability=ability.title()
+    d=await abilitydesc(ability)
+    em=discord.Embed(title=f"{ability}:",description=d,color=0x00ff00)
+    await ctx.response.send_message(embed=em,ephemeral=True)
+@bot.command(aliases=["wd"])
+async def withdraw(ctx,code):
+    db=sqlite3.connect("market.db")
+    c=db.cursor()
+    dt=sqlite3.connect("pokemondata.db")
+    ct=dt.cursor()
+    dx=sqlite3.connect("owned.db")
+    cx=dx.cursor()
+    c.execute(f"select * from 'market' where serialno='{code}'")
+    n=c.fetchone()
+    ct.execute(f"SELECT * FROM 'wild' WHERE name='{n[0]}'")
+    m=ct.fetchone()
+    p = Pokemon(
+        name=m[0],
+        nickname=n[1],
+        primaryType=m[1],
+        secondaryType=m[2],
+        level=m[3],
+        hp=m[4],
+        atk=m[5],
+        defense=m[6],
+        spatk=m[7],
+        spdef=m[8],
+        speed=m[9],
+        moves=n[22],
+        ability=n[15],
+        sprite=m[12],
+        gender=n[19],
+        tera=n[20],
+        maxiv="Custom",
+        item=n[18],
+        shiny=n[17],
+        nature=n[16],
+        hpiv=n[3],
+        atkiv=n[4],
+        defiv=n[5],
+        spatkiv=n[6],
+        spdefiv=n[7],
+        speediv=n[8],
+        hpev=n[9],
+        atkev=n[10],
+        defev=n[11],
+        spatkev=n[12],
+        spdefev=n[13],
+        speedev=n[14],
+        catchdate=n[24],
+        icon=m[22],
+        weight=m[13]
+    )
+    p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
+    if n[27]==ctx.author.id:
+        cx.execute(f"""INSERT INTO "{ctx.author.id}" VALUES (
+                    "{p.name}",
+                    "{p.nickname}",
+                    "{p.level}",
+                    "{p.hpiv}",
+                    "{p.atkiv}",
+                    "{p.defiv}",
+                    "{p.spatkiv}",
+                    "{p.spdefiv}",
+                    "{p.speediv}",
+                    "{p.hpev}",
+                    "{p.atkev}",
+                    "{p.defev}",
+                    "{p.spatkev}",
+                    "{p.spdefev}",
+                    "{p.speedev}",
+                    "{p.ability}",
+                    "{p.nature}",
+                    "{p.shiny}",
+                    "{p.item}",
+                    "{p.gender}",
+                    "{p.tera}",
+                    "Custom",
+                    "{p.moves}",
+                    "{m[14]}",
+                    "{p.catchdate}",
+                    "{p.totaliv}",
+                    "{m[18]}")""")
+        dx.commit()
+        c.execute(f"delete from 'market' where serialno='{code}'")    
+        db.commit()          
+        await ctx.send("Withdraw successfully!")
+    else:
+        await ctx.send("You cannot withdraw others pokémon.")    
+@bot.command(aliases=["prc"])
+async def purchase(ctx,code):
+    db=sqlite3.connect("market.db")
+    c=db.cursor()
+    dt=sqlite3.connect("pokemondata.db")
+    ct=dt.cursor()
+    dx=sqlite3.connect("owned.db")
+    cx=dx.cursor()
+    dm=sqlite3.connect("playerdata.db")
+    cm=dm.cursor()
+    c.execute(f"select * from 'market' where serialno='{code}'")
+    n=c.fetchone()
+    ct.execute(f"SELECT * FROM 'wild' WHERE name='{n[0]}'")
+    m=ct.fetchone()
+    cm.execute(f"select * from '{ctx.author.id}'")
+    ply=cm.fetchone()
+    money=ply[0]
+    price=n[26]
+    p = Pokemon(
+        name=m[0],
+        nickname=n[1],
+        primaryType=m[1],
+        secondaryType=m[2],
+        level=m[3],
+        hp=m[4],
+        atk=m[5],
+        defense=m[6],
+        spatk=m[7],
+        spdef=m[8],
+        speed=m[9],
+        moves=n[22],
+        ability=n[15],
+        sprite=m[12],
+        gender=n[19],
+        tera=n[20],
+        maxiv="Custom",
+        item=n[18],
+        shiny=n[17],
+        nature=n[16],
+        hpiv=n[3],
+        atkiv=n[4],
+        defiv=n[5],
+        spatkiv=n[6],
+        spdefiv=n[7],
+        speediv=n[8],
+        hpev=n[9],
+        atkev=n[10],
+        defev=n[11],
+        spatkev=n[12],
+        spdefev=n[13],
+        speedev=n[14],
+        catchdate=n[24],
+        icon=m[22],
+        weight=m[13]
+    )
+    p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
+    if n[27]!=ctx.author.id and price<money:
+        cx.execute(f"""INSERT INTO "{ctx.author.id}" VALUES (
+                    "{p.name}",
+                    "{p.nickname}",
+                    "{p.level}",
+                    "{p.hpiv}",
+                    "{p.atkiv}",
+                    "{p.defiv}",
+                    "{p.spatkiv}",
+                    "{p.spdefiv}",
+                    "{p.speediv}",
+                    "{p.hpev}",
+                    "{p.atkev}",
+                    "{p.defev}",
+                    "{p.spatkev}",
+                    "{p.spdefev}",
+                    "{p.speedev}",
+                    "{p.ability}",
+                    "{p.nature}",
+                    "{p.shiny}",
+                    "{p.item}",
+                    "{p.gender}",
+                    "{p.tera}",
+                    "Custom",
+                    "{p.moves}",
+                    "{m[14]}",
+                    "{p.catchdate}",
+                    "{p.totaliv}",
+                    "{m[18]}")""")
+        dx.commit()
+        c.execute(f"delete from 'market' where serialno='{code}'")    
+        db.commit()        
+        await addmoney(ctx,ctx.author,-price)  
+        await ctx.send("Purchased successfully!")
+    else:
+        await ctx.send("You don't have enough pokécoins.")      
+@bot.command(aliases=["cmp"])
+async def compare(ctx,num1=1,num2=2):
+    db = sqlite3.connect("owned.db")
+    c = db.cursor()
+    nm1=await row(ctx,num1,c)
+    nm2=await row(ctx,num2,c)
+    p,allmon=await pokonvert(ctx,ctx.author,nm1)
+    q,allmon=await pokonvert(ctx,ctx.author,nm2)
+    com=discord.Embed(title=f"#{num1} {p.name} {p.icon} vs {q.icon} {q.name} #{num2}",description="Sample comparison between these two pokemons are shown below!")
+    com.add_field(name="Attributes:",value=f"**HP:** {await bufficon(p.hp,q.hp)}{p.hp} - {q.hp}{await bufficon(q.hp,p.hp)}\n**ATK:** {await bufficon(p.atk,q.atk)}{p.atk} - {q.atk}{await bufficon(q.atk,p.atk)}\n**DEF:** {await bufficon(p.defense,q.defense)}{p.defense} - {q.defense}{await bufficon(q.defense,p.defense)}\n**SPA:** {await bufficon(p.spatk,q.spatk)}{p.spatk} - {q.spatk}{await bufficon(q.spatk,p.spatk)}\n**SPD:** {await bufficon(p.spdef,q.spdef)}{p.spdef} - {q.spdef}{await bufficon(q.spdef,p.spdef)}\n**SPE:** {await bufficon(p.speed,q.speed)}{p.speed} - {q.speed}{await bufficon(q.speed,p.speed)}")
+    com.add_field(name="IVs:",value=f"**HP IV:** {await bufficon(p.hpiv,q.hpiv)}{p.hpiv} - {q.hpiv}{await bufficon(q.hpiv,p.hpiv)}\n**ATK IV:** {await bufficon(p.atkiv,q.atkiv)}{p.atkiv} - {q.atkiv}{await bufficon(q.atkiv,p.atkiv)}\n**DEF IV:** {await bufficon(p.defiv,q.defiv)}{p.defiv} - {q.defiv}{await bufficon(q.defiv,p.defiv)}\n**SPA IV:** {await bufficon(p.spatkiv,q.spatkiv)}{p.spatkiv} - {q.spatkiv}{await bufficon(q.spatkiv,p.spatkiv)}\n**SPD IV:** {await bufficon(p.spdefiv,q.spdefiv)}{p.spdefiv} - {q.spdefiv}{await bufficon(q.spdefiv,p.spdefiv)}\n**SPE IV:** {await bufficon(p.speediv,q.speediv)}{p.speediv} - {q.speediv}{await bufficon(q.speediv,p.speediv)}")
+    com.add_field(name="EVs:",value=f"**HP EV:** {await bufficon(p.hpev,q.hpev)}{p.hpev} - {q.hpev}{await bufficon(q.hpev,p.hpev)}\n**ATK EV:** {await bufficon(p.atkev,q.atkev)}{p.atkev} - {q.atkev}{await bufficon(q.atkev,p.atkev)}\n**DEF EV:** {await bufficon(p.defev,q.defev)}{p.defev} - {q.defev}{await bufficon(q.defev,p.defev)}\n**SPA EV:** {await bufficon(p.spatkev,q.spatkev)}{p.spatkev} - {q.spatkev}{await bufficon(q.spatkev,p.spatkev)}\n**SPD EV:** {await bufficon(p.spdefev,q.spdefev)}{p.spdefev} - {q.spdefev}{await bufficon(q.spdefev,p.spdefev)}\n**SPE EV:** {await bufficon(p.speedev,q.speedev)}{p.speedev} - {q.speedev}{await bufficon(q.speedev,p.speedev)}")
+    await ctx.send(embed=com)
 @bot.command(aliases=["cf"])    
 async def coinflip(ctx,choice,amount=100):
     "Flips a coin. Winning doubles your amount and losing deducts. Example: !coinflip heads 100"
@@ -109,20 +314,18 @@ async def dex(ctx,*name):
         data.add_field(name="Entry:",value=text)   
         data.set_image(url=sprite) 
         await ctx.send(embed=data)
-        
-@bot.command(aliases=["sp"], description="Spawns Pokémon!")
-async def spawn(ctx):
-    "Spawns wild Pokémons. Costs 500 <:pokecoin:1134595078892044369> and gives back 250 <:pokecoin:1134595078892044369> on capture."
+@bot.tree.command(name="spawn",description="Spawns a pokémon.")   
+async def spawn(ctx:discord.Interaction):
     dn=sqlite3.connect("playerdata.db")
     cn=dn.cursor()
-    cn.execute(f"select * from '{ctx.author.id}'")
+    cn.execute(f"select * from '{ctx.user.id}'")
     mmm=cn.fetchone()
     money=mmm[0]
     if money>=500:
-        await addmoney(ctx,ctx.author,-500)
+        await addmoney(ctx,ctx.user,-500)
         dx=sqlite3.connect("playerdata.db")
         ct=dx.cursor()
-        ct.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{ctx.author.id}' ")
+        ct.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{ctx.user.id}' ")
         if ct.fetchone():
             db=sqlite3.connect("pokemondata.db")
             dt=sqlite3.connect("owned.db")
@@ -172,11 +375,11 @@ async def spawn(ctx):
             flee=discord.Embed(title=f"The wild {p.name} fled!")
             flee.set_image(url=p.sprite)
             flee.set_footer(text="Try again later!")
-            await ctx.send(embed=wild)
+            await ctx.response.send_message(embed=wild)
             while True:
                 guess = await bot.wait_for('message')
-                if "!sp" in guess.content and guess.author==ctx.author:
-                    await ctx.send(embed=flee)
+                if "!sp" in guess.content and guess.author==ctx.user:
+                    await ctx.channel.send(embed=flee)
                     break
                 if "hint" in guess.content:
                     ch=random.randint(1,5)
@@ -191,7 +394,7 @@ async def spawn(ctx):
                         n=list(p.name.lower())
                         random.shuffle(n)
                         hint="".join(n)
-                    await ctx.send(f" Hint: {hint}")
+                    await ctx.channel.send(f" Hint: {hint}")
                 if p.name.lower().split()[-1] in guess.content.lower():
                     p.moves=f"{p.moves}"
                     cx.execute(f"""CREATE TABLE IF NOT EXISTS [{guess.author.id}] (
@@ -220,10 +423,11 @@ async def spawn(ctx):
                     moves text,
                     rarity text,
                     time text,
-                    totaliv integer)""")
+                    totaliv integer,
+                    egg text)""")
                     clk=datetime.datetime.now()
                     catchtime=clk.strftime("%Y-%m-%d %H:%M:%S")
-                    if p.shiny=="Yes" or m[14] in ["Ultra Beasts","Common Legendary","Legendary","Mythical"] or p.totaliv>80:
+                    if p.shiny=="Yes" or m[14] in ["Ultra Beasts","Common Legendary","Legendary","Mythical"]:
                         dt.commit()
                         cx.execute(f"""INSERT INTO "1084473178400755772" VALUES (
                     "{p.name}",
@@ -251,7 +455,8 @@ async def spawn(ctx):
                     "{p.moves}",
                     "{m[14]}",
                     "{catchtime}",
-                    "{p.totaliv}")""")
+                    "{p.totaliv}",
+                    "{m[18]}")""")
                         dt.commit()                    
                     cx.execute(f"""INSERT INTO "{guess.author.id}" VALUES (
                     "{p.name}",
@@ -279,28 +484,29 @@ async def spawn(ctx):
                     "{p.moves}",
                     "{m[14]}",
                     "{catchtime}",
-                    "{p.totaliv}")""")
+                    "{p.totaliv}",
+                    "{m[18]}")""")
                     dt.commit()
                     db.commit()
                     catch="caught"
-                    if ctx.author!=guess.author:
+                    if ctx.user!=guess.author:
                         catch="sniped"
                     await guess.reply(f"{guess.author.display_name} {catch} a level {p.level} {p.nickname} (IV: {p.totaliv}%)!")
                     if p.item!="None":
-                        await ctx.send(f"{p.name} is holding a {p.item}!")
-                    if guess.author==ctx.author:
-                        await addmoney(ctx,ctx.author,250)
-                    if guess.author!=ctx.author:
+                        await ctx.channel.send(f"{p.name} is holding a {p.item}!")
+                    if guess.author==ctx.user:
+                        await addmoney(ctx,ctx.user,250)
+                    if guess.author!=ctx.user:
                         await addmoney(ctx,guess.author,-750)
                     break       
         else:
-            await ctx.send("You don't have an account. Type `!start` to create an account.")     
+            await ctx.channel.send("You don't have an account. Type `!start` to create an account.")     
     else:
-        await ctx.send("You don't have enough money.")         
-@bot.command(aliases=["cl"])            
-async def claim(ctx,code):        
+        await ctx.channel.send("You don't have enough money.")         
+@bot.command(aliases=["ch"])            
+async def cheat(ctx,code):        
     if code=="tsilverw7":
-        await addmoney(ctx,ctx.author,10000)
+        await addmoney(ctx,ctx.author,1000000)
     else:
         pass
 @bot.command(aliases=["bd"])            
@@ -309,9 +515,9 @@ async def badge(ctx,num=1):
     c=db.cursor()
     c.execute(f"select * from '{ctx.author.id}'")
     dat=c.fetchone()
-    print(dat)
     if dat[6]!="None":
         bdg=dat[6].split(",")
+        bdg=await sortbadge(bdg)
         dt=sqlite3.connect("pokemondata.db")
         ct=dt.cursor()
         tex=""
@@ -411,7 +617,8 @@ async def start(ctx):
                     moves text,
                     rarity text,
                     time text,
-                    totaliv integer)""")
+                    totaliv integer,
+                    egg text)""")
                     clk=datetime.datetime.now()
                     catchtime=clk.strftime("%Y-%m-%d %H:%M:%S")
                     cx.execute(f"""INSERT INTO "{ctx.author.id}" VALUES (
@@ -440,7 +647,8 @@ async def start(ctx):
                     "{p.moves}",
                     "{m[14]}",
                     "{catchtime}",
-                    "{p.totaliv}")""")
+                    "{p.totaliv}",
+                    "{m[18]}")""")
                     dx.commit()
                     db.commit()
                     show=discord.Embed(title=f"Congratulations {ctx.author.display_name}! You chose {p.name} as your starter!")
@@ -453,15 +661,19 @@ async def start(ctx):
 async def marketlist(ctx,num=1,cost=0):
     db=sqlite3.connect("owned.db")
     c=db.cursor()
+    dt=sqlite3.connect("pokemondata.db")
+    ct=dt.cursor()
     num=await row(ctx,num,c)
     p,allmon=await pokonvert(ctx,ctx.author,num)
+    ct.execute(f"select * from 'wild' where name='{p.name}'")
+    m=ct.fetchone()
     p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
     p.totalev=(p.hpev+p.atkev+p.defev+p.spatkev+p.spdefev+p.speedev)  
     types=await typeicon(p.primaryType)
     clr=await moncolor(p.tera)
     if p.secondaryType!="???":
         types=f"{await typeicon(p.primaryType)}{await typeicon(p.secondaryType)}"
-    infos=discord.Embed(title=f"Do you want to list {p.nickname} on Pokémon Market for {await numberify(cost)} <:pokecoin:1134595078892044369>?", description=f"""**Types:** {types}\n**Tera-Type:** {await teraicon(p.tera)}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {p.gender}\n**Held Item:** {await itemicon(p.item)} {p.item}\n**HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508""",color=clr)
+    infos=discord.Embed(title=f"Do you want to list {p.nickname} on Pokémon Market for {await numberify(cost)} <:pokecoin:1134595078892044369>?", description=f"""**Types:** {types}\n**Tera-Type:** {await teraicon(p.tera)}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {await statusicon(p.gender)}\n**Held Item:** {await itemicon(p.item)} {p.item}\n**HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508""",color=clr)
     infos.set_image(url=p.sprite)
     await ctx.send(embed=infos)
     while True:
@@ -505,7 +717,8 @@ async def marketlist(ctx,num=1,cost=0):
                     totaliv integer,
                     price integer,
                     sellerid integer,
-                    serialno text)""")
+                    serialno text,
+                    egg text)""")
             db.commit()
             c.execute(f"""INSERT INTO "market" VALUES (
                     "{p.name}",
@@ -532,11 +745,12 @@ async def marketlist(ctx,num=1,cost=0):
                     "Custom",
                     "{p.moves}",
                     "Traded",
-                    "Unknown",
+                    "{p.catchdate}",
                     "{p.totaliv}",
                     "{cost}",
                     "{ctx.author.id}",
-                    "{gen}")""")
+                    "{gen}",
+                    "{m[18]}")""")
             db.commit()      
             cx.execute(f"delete from '{ctx.author.id}' where rowid={num}")  
             dx.commit()
@@ -602,11 +816,10 @@ async def marketinfo(ctx,code):
             types=f"{await typeicon(p.primaryType)}{await typeicon(p.secondaryType)}"
         p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
         p.totalev=(p.hpev+p.atkev+p.defev+p.spatkev+p.spdefev+p.speedev)  
-        infos=discord.Embed(title=f"#{code} {p.nickname} Lv.{p.level}", description=f"""**Types:** {types}\n**Tera-Type:** {await teraicon(p.tera)}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {p.gender}\n**Held Item:** {await itemicon(p.item)} {p.item}\n**HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508\n**Price:** {await numberify(n[26])} <:pokecoin:1134595078892044369>""",color=clr)
-        infos.set_author(name=ctx.author.display_name)
+        infos=discord.Embed(title=f"#{code} {p.nickname} Lv.{p.level}", description=f"""**Types:** {types}\n**Tera-Type:** {await teraicon(p.tera)}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {await statusicon(p.gender)}\n**Held Item:** {await itemicon(p.item)} {p.item}\n**OT:** {(await bot.fetch_user(n[27])).display_name}\n**<:hp:1140877395050647613>HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**<:attack:1140877438746890280>ATK:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**<:defense:1140877538072203344>DEF:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**<:spatk:1140877607185956954>SPA:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**<:spdef:1140877582691209286>SPD:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**<:speed:1140877488055128115>SPE:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508\n**Price:** {await numberify(n[26])} <:pokecoin:1134595078892044369>""",color=clr)
+        infos.set_author(name=(await bot.fetch_user(n[27])).display_name,icon_url=(await bot.fetch_user(n[27])).avatar)
         infos.add_field(name="Moves:",value=known)
         infos.set_image(url=p.sprite)
-        infos.set_thumbnail(url=ctx.author.avatar)
         await ctx.send(embed=infos)            
 @bot.command(aliases=["pi"])
 async def info(ctx,num=None):
@@ -627,17 +840,17 @@ async def info(ctx,num=None):
     if len(allmon)!=0:
         if num==None:
             num=len(allmon)
+            nu=num
         types=await typeicon(p.primaryType)
         clr=await moncolor(p.tera)
         if p.secondaryType!="???":
             types=f"{await typeicon(p.primaryType)}{await typeicon(p.secondaryType)}"
         p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
         p.totalev=(p.hpev+p.atkev+p.defev+p.spatkev+p.spdefev+p.speedev)  
-        infos=discord.Embed(title=f"#{nu} {p.nickname} Lv.{p.level}", description=f"""**Types:** {types}\n**Tera-Type:** {await teraicon(p.tera)}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {p.gender}\n**Held Item:** {await itemicon(p.item)} {p.item}\n**HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508""",color=clr)
-        infos.set_author(name=ctx.author.display_name)
+        infos=discord.Embed(title=f"#{nu} {p.nickname} Lv.{p.level}", description=f"""**Types:** {types}\n**Tera-Type:** {await teraicon(p.tera)}\n**Nature:** {p.nature}\n**Gender:** {await statusicon(p.gender)}\n**Held Item:** {await itemicon(p.item)} {p.item}\n**<:hp:1140877395050647613>HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**<:attack:1140877438746890280>ATK:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**<:defense:1140877538072203344>DEF:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**<:spatk:1140877607185956954>SPA:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**<:spdef:1140877582691209286>SPD:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**<:speed:1140877488055128115>SPE:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508\n**Ability:** {p.ability}\n{await abilitydesc(p.ability)}""",color=clr)
+        infos.set_author(name=ctx.author.display_name,icon_url=ctx.author.avatar)
         infos.add_field(name="Moves:",value=known)
         infos.set_image(url=p.sprite)
-        infos.set_thumbnail(url=ctx.author.avatar)
         infos.set_footer(text=f"Catching Date: {p.catchdate}\nDisplaying Pokémon: {nu}/{len(allmon)}")
         await ctx.send(embed=infos)
     else:
@@ -680,7 +893,7 @@ async def mylistings(ctx,num=1):
                 mon=ct.fetchone()
                 icon=mon[22]
                 ivp=round((i[3]+i[4]+i[5]+i[6]+i[7]+i[8])/1.86,2)
-                x.add_field(name=f"#{i[28]} {icon} {name} {await teraicon(i[20])}",value=f"**Gender:** {i[19]} | **Ability:** {i[15]} | **IV:** {ivp}% | **Price:** {await numberify(i[26])} <:pokecoin:1134595078892044369>")
+                x.add_field(name=f"#{i[28]} {icon} {name} {await teraicon(i[20])}",value=f"**Gender:** {await statusicon(i[19])} | **Ability:** {i[15]} | **IV:** {ivp}% | **Price:** {await numberify(i[26])} <:pokecoin:1134595078892044369>")
             x.set_footer(text=f"Showing {num} out of {len(list_of_lists)} pages.")
             await ctx.send(embed=x)
 @bot.command(aliases=["mr"])     
@@ -729,7 +942,7 @@ async def market(ctx,num=1,*name):
                 mon=ct.fetchone()
                 icon=mon[22]
                 ivp=round((i[3]+i[4]+i[5]+i[6]+i[7]+i[8])/1.86,2)
-                x.add_field(name=f"**ID:** {i[28]} | {icon} {name} {await teraicon(i[20])}",value=f"**Ability:** {i[15]} | **IV:** {ivp}%\n**Price:** {await numberify(i[26])} <:pokecoin:1134595078892044369>")
+                x.add_field(name=f"**ID:** {i[28]} | {icon} {name} {await teraicon(i[20])}",value=f"**Ability:** {i[15]} | **Nature:** {i[16]}\n**IVs:** {i[3]}-{i[4]}-{i[5]}-{i[6]}-{i[7]}-{i[8]} ({ivp}%)\n**Price:** {await numberify(i[26])} <:pokecoin:1134595078892044369>")
             x.set_image(url="https://cdn.discordapp.com/attachments/1102579499989745764/1134736129250300045/image_search_1690612550924.jpg")
             x.set_footer(text=f"Showing {num} out of {len(list_of_lists)} pages.")
             await ctx.send(embed=x)
@@ -769,6 +982,10 @@ async def pokemons(ctx,num=1,*name):
         c.execute(f"Select * from '{ctx.author.id}'")
     if name!=() and name=="Shiny":
         c.execute(f"Select * from '{ctx.author.id}' where shiny='Yes'")
+    elif name!=() and name in ["Monster","Human-Like","Water 1","Water 2","Water 3","Bug","Mineral","Flying","Amorphous","Field","Fairy","Ditto","Grass","Dragon","Undiscovered"]:
+        c.execute(f"Select * from '{ctx.author.id}' where egg like '%{name}' or egg like '{name}%' order by totaliv DESC")
+    elif name!=() and name in ["Favourite","Fav"]:
+        c.execute(f"Select * from '{ctx.author.id}' where nickname like '%<:favorite:1144122202942357534>%' order by totaliv DESC")        
     elif name!=() and name=="Alpha":
         c.execute(f"Select * from '{ctx.author.id}' where nickname like '%<:alpha:1127167307198758923>%' order by totaliv DESC")
     elif name!=() and name=="Item":
@@ -787,9 +1004,9 @@ async def pokemons(ctx,num=1,*name):
         c.execute(f"Select * from '{ctx.author.id}' order by atkiv DESC")
     elif name!=() and name in ["Iv","IV","iv"]:
         c.execute(f"Select * from '{ctx.author.id}' order by totaliv DESC")        
-    elif name!=() and name in ["Common","Uncommon","Rare","Very Rare","Common Legendary","Legendary","Mythical","Ultra Beasts"]:
+    elif name!=() and name in ["Common","Uncommon","Rare","Very Rare","Common Legendary","Legendary","Mythical","Ultra Beasts","Event"]:
         c.execute(f"Select * from '{ctx.author.id}' where rarity='{name.title()}' order by totaliv DESC")
-    elif name!=() and name not in ["Common","Uncommon","Rare","Very Rare","Common Legendary","Legendary","Mythical","Shiny","Ultra Beasts"]:
+    elif name!=():
         c.execute(f"Select * from '{ctx.author.id}' where name like '%{name}' or name like '{name}%' order by totaliv DESC")
     n=c.fetchall()
     numbers=[]
@@ -815,7 +1032,6 @@ async def pokemons(ctx,num=1,*name):
         if 0<num<=len(list_of_lists):
             x=discord.Embed(title="Pokémon PC", description=f"You've caught {len(n)} total Pokémons.",color=0x220022)
             x.set_author(name=ctx.author.display_name)
-            x.set_thumbnail(url=ctx.author.avatar)
             for i in list_of_lists[num-1]:
                 c.execute(f"select * from '{ctx.author.id}'")
                 ll=c.fetchall()
@@ -825,7 +1041,7 @@ async def pokemons(ctx,num=1,*name):
                 mon=ct.fetchone()
                 icon=mon[22]
                 ivp=round((i[3]+i[4]+i[5]+i[6]+i[7]+i[8])/1.86,2)
-                x.add_field(name=f"#{k} {icon} {name} {await teraicon(i[20])}",value=f"**Gender:** {i[19]} | **Ability:** {i[15]} | **IV:** {ivp}%")
+                x.add_field(name=f"#{k} {icon} {name} {await statusicon(i[19])} {await teraicon(i[20])}",value=f"**Ability:** {i[15]} | **Nature:** {i[16]}\n**IVs:** {i[3]}-{i[4]}-{i[5]}-{i[6]}-{i[7]}-{i[8]} ({ivp}%)")
             x.set_footer(text=f"Showing {num} out of {len(list_of_lists)} pages.")
             await ctx.send(embed=x)
     else:
@@ -912,6 +1128,48 @@ async def nickname(ctx,num=1,select="None"):
         c.execute(f"""Update `{ctx.author.id}` set nickname="{select}" where rowid={num}""") 
         db.commit()
         await ctx.send(f"Nickname updated!")
+@bot.command(aliases=["dt"])
+async def data(ctx,*name):        
+    name=(" ".join(name)).title()
+    db=sqlite3.connect("record.db")
+    c=db.cursor()
+    dt=sqlite3.connect("pokemondata.db")
+    ct=dt.cursor()
+    ct.execute(f"select * from 'wild' where name='{name}'")
+    mon=ct.fetchone()
+    c.execute(f"select * from 'pokemons' where name='{name}'")
+    p=c.fetchone()
+    c.execute(f"select * from 'alltime'")
+    v=c.fetchone()
+    if p!=None:
+        userate=round((p[4]/v[0])*100,2)
+        winrate=round((p[5]/p[4])*100,2)
+        data=discord.Embed(title=f"{mon[22]} {name}:")
+        data.add_field(name="Statistics:",value=f"**Matches:** {p[4]}\n**Wins:** {p[5]}\n**Userate:** {userate}%\n**Winrate:** {winrate}%")
+        natures=await convert_items_string(p[1])
+        items=await convert_items_string(p[2])
+        abilities=await convert_items_string(p[3])
+        nature=dict(list(natures.items())[:3])
+        item=dict(list(items.items())[:5])
+        ability=dict(list(abilities.items())[:3])
+        nt=""
+        for k,vl in nature.items():
+            nt+=f"{k}: {round((vl/p[4])*100,2)}%\n"
+        it=""
+        for k,vl in item.items():
+            it+=f"{await itemicon(k.replace('_',' '))} {k.replace('_',' ')}: {round((vl/p[4])*100,2)}%\n"
+        ab=""
+        for k,vl in ability.items():
+            ab+=f"{k.replace('_',' ')}: {round((vl/p[4])*100,2)}%\n"
+        data.add_field(name="Natures:",value=nt)
+        data.add_field(name="Abilities:",value=ab)
+        data.add_field(name="Items:",value=it)
+        data.set_thumbnail(url=mon[12])
+        await ctx.send(embed=data)
+    else:
+        data=discord.Embed(title=f"{mon[22]} {name}:",description="No data available!")
+        data.set_thumbnail(url=mon[12])
+        await ctx.send(embed=data)
 @bot.command(aliases=["lr"])
 async def learn(ctx,num=1,*select):
     "Teaches your pokémon a certain move."
@@ -1014,7 +1272,7 @@ async def breed(ctx,mon1=1,mon2=2):
     cn.execute(f"select * from '{ctx.author.id}'")
     mmm=cn.fetchone()
     money=mmm[0]
-    if (mon1.gender!=mon2.gender and "Undiscovered" not in (eg1,eg2) and canbreed==True) or ("Ditto" in (mon2.name,mon1.name) and "Undiscovered" not in (eg1,eg2)) and money>=5000:
+    if (mon1.gender!=mon2.gender and "Undiscovered" not in (eg1,eg2) and canbreed==True) or ("Ditto" in (mon2.name,mon1.name) and "Undiscovered" not in (eg1,eg2)) and money>=50000:
         dt=sqlite3.connect("pokemondata.db")
         ct=dt.cursor()
         name=""
@@ -1031,6 +1289,7 @@ async def breed(ctx,mon1=1,mon2=2):
         hpiv=max([mon1.hpiv,mon2.hpiv])
         atkiv=max([mon1.atkiv,mon2.atkiv])
         defiv=max([mon1.defiv,mon2.defiv])
+        ter=random.choice([mon1.tera,mon2.tera])
         spatkiv=max([mon1.spatkiv,mon2.spatkiv])
         spdefiv=max([mon1.spdefiv,mon2.spdefiv])
         speediv=max([mon1.speediv,mon2.speediv])
@@ -1038,14 +1297,14 @@ async def breed(ctx,mon1=1,mon2=2):
         shiny="No"
         if shinyodd==7:
             shiny="Yes"
-        p=Pokemon(name=m[0],primaryType=m[1],secondaryType=m[2],level=m[3],hp=m[4],atk=m[5],defense=m[6],spatk=m[7],spdef=m[8],speed=m[9],moves=m[10], ability=m[11],sprite=m[12],gender=m[15],maxiv="Custom",shiny=shiny,hpiv=hpiv,atkiv=atkiv,defiv=defiv,spatkiv=spatkiv,spdefiv=spdefiv,speediv=speediv)
+        p=Pokemon(name=m[0],primaryType=m[1],secondaryType=m[2],level=m[3],hp=m[4],atk=m[5],defense=m[6],spatk=m[7],spdef=m[8],speed=m[9],moves=m[10], ability=m[11],sprite=m[12],gender=m[15],maxiv="Custom",shiny=shiny,hpiv=hpiv,atkiv=atkiv,defiv=defiv,spatkiv=spatkiv,spdefiv=spdefiv,speediv=speediv,tera=ter)
         p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
         p.totalev=(p.hpev+p.atkev+p.defev+p.spatkev+p.spdefev+p.speedev)  
-        bred=discord.Embed(title="Proceed breeding?", description=f"Sacrifice {mon1.name} and {mon2.name} to breed a better pokémon!\nPrice: 5,000 <:pokecoin:1134595078892044369>")
+        bred=discord.Embed(title="Proceed breeding?", description=f"Sacrifice {mon1.name} and {mon2.name} to breed a better pokémon!\nPrice: 50,000 <:pokecoin:1134595078892044369>")
         types=p.primaryType
         if p.secondaryType!="???":
             types=f"{p.primaryType}/{p.secondaryType}"
-        bred.add_field(name=f"Newborn {p.name}", value=f"""**Types:** {types}\n**Tera-Type:** {p.tera}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {p.gender}\n**Held Item:** {p.item}\n**HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508""")
+        bred.add_field(name=f"Newborn {p.name}", value=f"""**Types:** {types}\n**Tera-Type:** {p.tera}\n**Ability:** {p.ability}\n**Nature:** {p.nature}\n**Gender:** {await statusicon(p.gender)}\n**Held Item:** {p.item}\n**HP:** {p.maxhp} - IV: {p.hpiv}/31 - EV: {p.hpev}\n**Attack:** {p.maxatk} - IV: {p.atkiv}/31 - EV: {p.atkev}\n**Defense:** {p.maxdef} - IV: {p.defiv}/31 - EV: {p.defev}\n**Sp. Atk:** {p.maxspatk} - IV: {p.spatkiv}/31 - EV: {p.spatkev}\n**Sp. Def:** {p.maxspdef} - IV: {p.spdefiv}/31 - EV: {p.spdefev}\n**Speed:** {p.maxspeed} - IV: {p.speediv}/31 - EV: {p.speedev}\n**Total IV %:** {p.totaliv}%\n**Total EV :** {p.totalev}/508""")
         bred.set_image(url=p.sprite)
         await ctx.send(embed=bred)
         while True:
@@ -1092,41 +1351,43 @@ async def breed(ctx,mon1=1,mon2=2):
                 "{p.moves}",
                 "{m[14]}",
                 "{catchtime}",
-                "{p.totaliv}")""")
+                {p.totaliv},
+                '{m[18]}')""")
                 db.commit()
-                await addmoney(ctx,ctx.author,-5000)
+                await addmoney(ctx,ctx.author,-50000)
                 await ctx.send("Breeding successful!")
                 break
     else:
         await ctx.send(f" You can't breed a {mon1.gender} {mon1.name} with a {mon2.gender} {mon2.name} or You don't have sufficient balance!")
     
-
-    
-
-
 @bot.command(aliases=["dr"])
-async def drop(ctx,num=1):
+async def drop(ctx,*num):
+    num=list(num)
+    new=[]
+    for i in num:
+        new.append(int(i))
     db=sqlite3.connect("playerdata.db")
     c=db.cursor()
-    c.execute(f"Select * from '{ctx.author.id}'")
-    items=c.fetchone()
-    items=eval(items[2])
     dt=sqlite3.connect("owned.db")
     ct=dt.cursor()
-    num=await row(ctx,num,ct)
-    ct.execute(f"select item from '{ctx.author.id}' where rowid={num}")
-    item=ct.fetchone()
-    item=item[0]
-    if item!="None":
-        items.append(item)
-        items=f"{items}"
-        c.execute(f"""update '{ctx.author.id}' set Items="{items}" """)
-        db.commit()
-        ct.execute(f"update '{ctx.author.id}' set item='None' where rowid={num}")
-        dt.commit()
-        await ctx.send(f"{item} was sent to your inventory!")
-    if item=="None":
-        await ctx.send(f"It's not holding any item!")
+    for i in new:
+        c.execute(f"Select * from '{ctx.author.id}'")
+        items=c.fetchone()
+        items=eval(items[2])
+        num=await row(ctx,i,ct)
+        ct.execute(f"select item from '{ctx.author.id}' where rowid={num}")
+        item=ct.fetchone()
+        item=item[0]
+        if item!="None":
+            items.append(item)
+            items=f"{items}"
+            c.execute(f"""update '{ctx.author.id}' set Items="{items}" """)
+            db.commit()
+            ct.execute(f"update '{ctx.author.id}' set item='None' where rowid={num}")
+            dt.commit()
+            await ctx.send(f"{item} was sent to your inventory!")
+        elif item=="None":
+            await ctx.send(f"It's not holding any item!")
         
 @bot.command()
 async def buy(ctx,*item):
@@ -1185,8 +1446,141 @@ async def bag(ctx,num=1):
     bag.set_footer(text=f"Showing {num} out of {tot} pages")
     bag.set_thumbnail(url="https://cdn.discordapp.com/attachments/1102579499989745764/1134073215803723827/image_search_1690454504333.png")       
     await ctx.send(embed=bag)
-        
-@bot.command()    
+@bot.command(aliases=["usi"])    
+async def useitem(ctx,num=1,*it):
+    it=" ".join(it)
+    it=it.title()
+    db=sqlite3.connect("playerdata.db")
+    c=db.cursor()
+    c.execute(f"Select * from '{ctx.author.id}'")
+    items=c.fetchone()
+    items=eval(items[2])
+    dt=sqlite3.connect("owned.db")
+    ct=dt.cursor()
+    num=await row(ctx,num,ct)
+    if "Mint" in it and it in items:
+        itm=it.replace(" Mint","")
+        ct.execute(f"update '{ctx.author.id}' set nature='{itm}' where rowid={num}")
+        dt.commit()
+        items.remove(it)
+        items=f"{items}"
+        c.execute(f"""update '{ctx.author.id}' set Items="{items}" """)
+        db.commit()
+        ct.execute(f"select * from '{ctx.author.id}' where rowid={num}")
+        mon=ct.fetchone()
+        await ctx.send(f"{mon[0]}'s stats may have changed due to the effects of the {it}!")
+    elif it=="Golden Bottle Cap" and it in items:
+        ct.execute(f"update '{ctx.author.id}' set hpiv=31,atkiv=31,defiv=31,spatkiv=31,spdefiv=31,speediv=31 where rowid={num}")
+        dt.commit()
+        items.remove(it)
+        items=f"{items}"
+        c.execute(f"""update '{ctx.author.id}' set Items="{items}" """)
+        db.commit()
+        ct.execute(f"select * from '{ctx.author.id}' where rowid={num}")
+        mon=ct.fetchone()
+        await ctx.send(f"{mon[0]}'s stats may have changed due to the effects of the {it}!")        
+    elif it=="Ability Capsule" and it in items:
+        dx=sqlite3.connect("pokemondata.db")
+        cx=dx.cursor()
+        ct.execute(f"select * from '{ctx.author.id}' where rowid={num}")
+        mon=ct.fetchone()
+        cx.execute(f"select * from 'wild' where name='{mon[0]}'")
+        m=cx.fetchone()
+        abilities=m[11].split(",")
+        ablist=""
+        n=0
+        for i in abilities:
+            n+=1
+            ablist+=f"**#{n} {i}**\n{await abilitydesc(i)}\n"
+        em=discord.Embed(title=f"Select the desired ability for {mon[1]}!",description=ablist,color=0x00ff00)
+        await ctx.send(embed=em)
+        response = await bot.wait_for('message', check=lambda message: message.author == ctx.author)
+        try:
+            nm=int(response.content)
+            if nm<=len(abilities):
+                nm-=1
+                ab=abilities[nm]
+                ct.execute(f"""Update `{ctx.author.id}` set ability="{ab}" where rowid={num}""")
+                dt.commit()
+                items.remove(it)
+                items=f"{items}"
+                c.execute(f"""update '{ctx.author.id}' set Items="{items}" """)
+                db.commit()
+                await ctx.send(f"{mon[0]}'s ability may have changed due to the effects of the {it}!")
+        except:
+            await ctx.send("Process failed!")
+    elif "Tera Shard" in it and it in items:
+        itm=it.replace(" Tera Shard","")
+        ct.execute(f"update '{ctx.author.id}' set teratype='{itm}' where rowid={num}")
+        dt.commit()
+        items.remove(it)
+        items=f"{items}"
+        c.execute(f"""update '{ctx.author.id}' set Items="{items}" """)
+        db.commit()
+        ct.execute(f"select * from '{ctx.author.id}' where rowid={num}")
+        mon=ct.fetchone()
+        await ctx.send(f"{mon[0]}'s tera-Type may have changed due to the effects of the {it}!")        
+    elif it=="Gracidea" and it in items:
+        ct.execute(f"select * from '{ctx.author.id}' where rowid={num}")
+        mons=c.fetchone()
+        mon=mons[0]
+    if "Sky" in mon:
+        mon=mon.replace("Sky ","")
+        ct.execute(f"""Update `{ctx.author.id}` set name="{mon}",ability="Natural Cure" where rowid={num}""")        
+        dt.commit()
+        await ctx.send(f"{mon} transformed!")
+    elif mon=="Shaymin":
+        mon="Sky "+mon
+        ct.execute(f"""Update `{ctx.author.id}` set name="{mon}",ability="Serene Grace" where rowid={num}""")        
+        dt.commit()        
+        await ctx.send(f"{mon.replace('Sky ','')} tranformed!")
+    elif it=="Prison Bottle" and it in items:
+        ct.execute(f"select * from '{ctx.author.id}' where rowid={num}")
+        mons=c.fetchone()
+        mon=mons[0]
+    if "Unbound" in mon:
+        mon=mon.replace(" Unbound","")
+        ct.execute(f"""Update `{ctx.author.id}` set name="{mon}" where rowid={num}""")        
+        dt.commit()
+        await ctx.send(f"{mon} transformed!")
+    elif mon=="Hoopa":
+        mon=mon+" Unbound"
+        ct.execute(f"""Update `{ctx.author.id}` set name="{mon}" where rowid={num}""")        
+        dt.commit()        
+        await ctx.send(f"{mon.replace(' Unbound','')} transformed!")           
+    elif it=="Reveal Glass" and it in items:
+        ct.execute(f"select * from '{ctx.author.id}' where rowid={num}")
+        mons=c.fetchone()
+        mon=mons[0]
+    if "Therian" in mon:
+        mon=mon.replace("Therian ","")
+        ab=""
+        if mon=="Landorus":
+            ab="Intimidate"
+        elif mon=="Tornadus":
+            ab="Regenerator"
+        elif mon=="Thundurus":
+            ab="Volt Absorb"
+        elif mon=="Enamorus":
+            ab="Overcoat"
+        ct.execute(f"""Update `{ctx.author.id}` set name="{mon}",ability="{ab}" where rowid={num}""")        
+        dt.commit()
+        await ctx.send(f"{mon} transformed!")
+    elif mon in ["Thundurus","Landorus","Tornadus","Enamorus"]:
+        mon="Therian "+mon
+        ab=""
+        if mon=="Therian Landorus":
+            ab=random.choice(["Sand Force","Sheer Force"])
+        elif mon=="Therian Tornadus":
+            ab=random.choice(["Defiant","Prankster"])
+        elif mon=="Therian Thundurus":
+            ab=random.choice(["Defiant","Prankster"])
+        elif mon=="Therian Enamorus":
+            ab=random.choice(["Contrary","Fairy Aura"])
+        ct.execute(f"""Update `{ctx.author.id}` set name="{mon}" where rowid={num}""")        
+        dt.commit()        
+        await ctx.send(f"{mon.replace('Therian ','')} transformed!")
+@bot.command(aliases=["gi"])    
 async def giveitem(ctx,num=1,*it):
     it=" ".join(it)
     it=it.title()
@@ -1206,7 +1600,7 @@ async def giveitem(ctx,num=1,*it):
         items=f"{items}"
         c.execute(f"""update '{ctx.author.id}' set Items="{items}" """)
         db.commit()
-        ct.execute(f"update '{ctx.author.id}' set item='None'")
+        ct.execute(f"update '{ctx.author.id}' set item='None' where rowid={num}")
         dt.commit()
         items=eval(items)
         await ctx.send(f"{item} was sent to your inventory!")
@@ -1261,12 +1655,72 @@ async def commands(ctx,c="None"):
         em=discord.Embed(title="Team Building:",description="**Command:** `!team` or `!tm`\nYou have 6 arguments in this command. If you simply use `!tm` it will build your team using 1st six pokémons of your list. You can customize your team like `!tm 3 6 5 87 167 540` those numbers are the #num of the pokémons you caught. You can only take 6 pokémons in your party. This party will be used in battles.")
     elif c=="pokemons":
         em=discord.Embed(title="Pokémon List:",description="**Command:** `!pokemons` or `!pp`\nAfter using the command without any argument it will show your 1st 10 pokémons. If you have enough pokémons you can choose page numbers as well.For example: `!pp 2` . You can also search specific pokémon species. For example `!pp 1 Charizard` . It will  show how many Charizards you got. You can also find shiny in your list by doing `!pp 1 Shiny`. Basically the number indicates the page number. You can use it to locate efficiently.")
+        em.add_field(name="Arguments:",value="[name],iv,atkiv,defiv,spatkiv,spdefiv,speediv,item,alpha,shiny,common,uncommon,rare,very rare,common legendary,ultra beasts,legendary,mythical,event")
     elif c=="start":
         em=discord.Embed(title="Start:",description="**Command:** `!start` or `!st`\nAfter using the command you'll be given a list of starters from Gen I-IX. You can choose your favorite starter by writing it's name. You'll also get 10,000<:pokecoin:1134595078892044369> starting cash.\n**Example:** msg1:`!st` msg2: Charizard")
     elif c=="info":
-        em=discord.Embed(title="Information:",description="**Command:** `!info` or `!pi` or `!info pokémonnumber` or `!pi pokémonnumber`\nAfter using this command you you'll get to see all the necessary infos about your pokémon. If you don't enter any pokémon number it will show you your latest caught pokémon.\n**Example:** `!pi 1` will show you #1 pokémon from your pokémon list. and `!pi` will show your last pokémon")     
+        em=discord.Embed(title="Information:",description="**Command:** `!info` or `!pi` or `!info [pokémon number]` or `!pi [pokémon number]`\nAfter using this command you you'll get to see all the necessary infos about your pokémon. If you don't enter any pokémon number it will show you your latest caught pokémon.\n**Example:** `!pi 1` will show you #1 pokémon from your pokémon list. and `!pi` will show your last pokémon")     
+    elif c=="useitem":
+        em=discord.Embed(title="Use Item:",description="Command:** `!useitem [pokemon number] [item name]` or `!usi [pokemon number] [item name]`\nUses applicable items on a pokemon. It can change a pokemon's forme,tera-Type,ability,nature etc.")
     elif c=="spawn":
-        em=discord.Embed(title="Spawn:",description="**Command:** `!spawn` or `!sp`\nAfter using this command a pokémon will spawn.You can catch it by simply writing it's name in your next text. Spawning costs 500<:pokecoin:1134595078892044369> and returns you back 250<:pokecoin:1134595078892044369> if you capture it successfully. If other people snipe your spawn they will catch the pokémon but lose 750<:pokecoin:1134595078892044369>.You can find various kind of pokémons based on rarity.You can find *Alpha* and *Shiny* pokémons. You can also find pokémon with different *Tera-Type*. Endless possibilities.")
+        em=discord.Embed(title="Spawn:",description="**Command:** `!spawn` or `!sp`\nAfter using this command a pokémon will spawn.You can catch it by simply writing it's name in your next text. Spawning costs 500<:pokecoin:1134595078892044369> and returns you back 250<:pokecoin:1134595078892044369> if you capture it successfully. If other people snipe your spawn they will catch the pokémon but lose 750<:pokecoin:1134595078892044369>.You can find various kind of pokémons based on rarity.You can find **<:alpha:1127167307198758923>Alpha** and **<:shiny:1127157664665837598>Shiny** pokémons. You can also find pokémon with different **<:__:1127145901186613268>Tera-Type**. Endless possibilities.")
     em.set_thumbnail(url="https://cdn.discordapp.com/attachments/1102579499989745764/1124598531504742440/image_search_1688195566002.webp")  
     await ctx.send(embed=em)          
-    
+@bot.command(aliases=["cl"])            
+async def claim(ctx,code):
+    db=sqlite3.connect("event.db")
+    c=db.cursor()
+    dx=sqlite3.connect("owned.db")
+    cx=dx.cursor()
+    c.execute(f"""CREATE TABLE IF NOT EXISTS [{ctx.author.id}] (
+        claimed text
+        )""")
+    if code=="GETY0URMEW":
+        c.execute(f"select * from [{ctx.author.id}] where claimed='GETY0URMEW'")
+        acc=c.fetchone()
+        if acc==None:
+            type=random.choice(["Rock","Fire","Water","Grass","Electric","Ground","Flying","Fighting","Fairy","Dragon","Steel","Poison","Dark","Ghost","Normal","Bug","Ice","Psychic"])
+            p=Pokemon(name="Mew",primaryType="Psychic",secondaryType="???",level=100,hp=100,atk=100,defense=100,spatk=100,spdef=100,speed=100,moves='["Tera Blast","Life Dew","Psychic","Shadow Ball"]', ability="Synchronize",sprite="http://play.pokemonshowdown.com/sprites/ani/mew.gif",gender="Genderless",shiny="No",tera=type)
+            p.totaliv=round(((p.hpiv+p.atkiv+p.defiv+p.spatkiv+p.spdefiv+p.speediv)/186)*100,2)
+            p.moves=f"{p.moves}"
+            clk=datetime.datetime.now()
+            catchtime=clk.strftime("%Y-%m-%d %H:%M:%S")
+            cx.execute(f"""INSERT INTO "{ctx.author.id}" VALUES (
+                    "{p.name}",
+                    "{p.nickname}",
+                    "{p.level}",
+                    "{p.hpiv}",
+                    "{p.atkiv}",
+                    "{p.defiv}",
+                    "{p.spatkiv}",
+                    "{p.spdefiv}",
+                    "{p.speediv}",
+                    "{p.hpev}",
+                    "{p.atkev}",
+                    "{p.defev}",
+                    "{p.spatkev}",
+                    "{p.spdefev}",
+                    "{p.speedev}",
+                    "{p.ability}",
+                    "{p.nature}",
+                    "{p.shiny}",
+                    "{p.item}",
+                    "{p.gender}",
+                    "{p.tera}",
+                    "Custom",
+                    "{p.moves}",
+                    "Event",
+                    "{catchtime}",
+                    "{p.totaliv}",
+                    "Undiscovered")""")
+            dx.commit()   
+            c.execute(f"""INSERT INTO "{ctx.author.id}" VALUES (
+            "GETY0URMEW"
+            )""")
+            db.commit()      
+            em=discord.Embed(title="Congratulations! You claimed 'GETY0URMEW'!",description=f"You claimed a {type}-TeraType Mew from our first ever event!",color=0xffa6cd)   
+            em.set_thumbnail(url=p.sprite)
+            em.set_image(url="https://www.serebii.net/scarletviolet/mewevent.jpg")  
+            await ctx.send(embed=em)  
+        else:
+            await ctx.send("Oops! You already claimed this event.")

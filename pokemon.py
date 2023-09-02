@@ -7,6 +7,86 @@ def stat_calc(stat, individual_value, effort_value, level, spst="None"):
     else:
         new_stat = round((((2 * stat + individual_value + (effort_value * 0.25)) * level) / 100) + 5)
     return new_stat
+def zmove(x):
+    normalzmoves={
+    "Normalium-Z": "Breakneck Blitz",
+    "Firium-Z": "Inferno Overdrive",
+    "Waterium-Z": "Hydro Vortex",
+    "Electrium-Z": "Gigavolt Havoc",
+    "Grassium-Z": "Bloom Doom",
+    "Icium-Z": "Subzero Slammer",
+    "Fightinium-Z": "All-Out Pummeling",
+    "Poisonium-Z": "Acid Downpour",
+    "Groundium-Z": "Tectonic Rage",
+    "Flyinium-Z": "Supersonic Skystrike",
+    "Psychium-Z": "Shattered Psyche",
+    "Buginium-Z": "Savage Spin-Out",
+    "Rockium-Z": "Continental Crush",
+    "Ghostium-Z": "Never-Ending Nightmare",
+    "Dragonium-Z": "Devastating Drake",
+    "Darkinium-Z": "Black Hole Eclipse",
+    "Steelium-Z": "Corkscrew Crash",
+    "Fairium-Z": "Twinkle Tackle"
+}
+    specialzmoves={
+    "Pikashunium-Z":"10,000,000 Volt Thunderbolt",
+    "Pikanium-Z": "Catastropika",
+    "Decidium-Z": "Sinister Arrow Raid",
+    "Incinium-Z": "Malicious Moonsault",
+    "Primarium-Z": "Oceanic Operetta",
+    "Tapunium-Z": "Guardian of Alola",
+    "Marshadium-Z": "Soul-Stealing 7-Star Strike",
+    "Aloraichium-Z": "Stoked Sparksurfer",
+    "Snorlium-Z": "Pulverizing Pancake",
+    "Eevium-Z": "Extreme Evoboost",
+    "Mewnium-Z": "Genesis Supernova",
+    "Lycanium-Z": "Splintered Stormshards",
+    "Kommonium-Z": "Clangorous Soulblaze",
+    "Solganium-Z": "Searing Sunraze Smash",
+    "Lunalium-Z": "Menacing Moonraze Maelstrom",
+    "Ultranecrozium-Z": "Light That Burns the Sky",
+    "Mimikium-Z":"Let's Snuggle Forever"}
+    if x.name=="Pikachu" and x.item=="Pikashunium-Z" and "Thunderbolt" in x.moves:
+        return specialzmoves[x.item]
+    elif x.name=="Pikachu" and x.item=="Pikanium-Z" and "Volt Tackle" in x.moves:
+        return specialzmoves[x.item]    
+    elif x.name=="Decidueye" and x.item=="Decidium-Z" and "Spirit Shackle" in x.moves:
+        return specialzmoves[x.item]  
+    elif x.name=="Incineroar" and x.item=="Incinium-Z" and "Darkest Lariat" in x.moves:
+        return specialzmoves[x.item]
+    elif x.name=="Primarina" and x.item=="Primarium-Z" and "Sparkling Aria" in x.moves:
+        return specialzmoves[x.item]    
+    elif "Tapu " in x.name and x.item=="Tapunium-Z" and "Natures Madness" in x.moves:
+        return specialzmoves[x.item]   
+    elif x.name=="Marshadow" and x.item=="Marshadium-Z" and "Spectral Thief" in x.moves:
+        return specialzmoves[x.item]     
+    elif x.name=="Alolan Raichu" and x.item=="Aloraichium-Z" and "Thunderbolt" in x.moves:
+        return specialzmoves[x.item]    
+    elif x.name=="Snorlax" and x.item=="Snorlium-Z" and "Giga Impact" in x.moves:
+        return specialzmoves[x.item] 
+    elif ("eon" in x.name or x.name=="Eevee") and x.item=="Eevium-Z" and "Last Resort" in x.moves:
+        return specialzmoves[x.item]
+    elif x.name=="Mew" and x.item=="Mewnium-Z" and "Psychic" in x.moves:
+        return specialzmoves[x.item]
+    elif "Lycanroc" in x.name and x.item=="Lycanium-Z" and "Stone Edge" in x.moves:
+        return specialzmoves[x.item]
+    elif x.name=="Kommo-O" and x.item=="Kommonium-Z" and "Clanging Scales" in x.moves:
+        return specialzmoves[x.item]
+    elif x.name=="Solgaleo" and x.item=="Solganium-Z" and "Sunsteel Strike" in x.moves:
+        return specialzmoves[x.item]
+    elif x.name=="Lunala" and x.item=="Lunalium-Z" and "Moongeist Beam" in x.moves:
+        return specialzmoves[x.item]
+    elif "Necrozma" in x.name and x.item=="Ultranecrozium-Z" and "Photon Geyser" in x.moves:
+        return specialzmoves[x.item]
+    elif "Mimikyu" in x.name and x.item=="Mimikium-Z" and "Play Rough" in x.moves:
+        return specialzmoves[x.item]
+    elif x.item not in specialzmoves:
+        if "m-Z" in x.item and "Used" not in x.item:
+            return normalzmoves[x.item]    
+    else:
+        x.zuse=False
+        return "None"
+                    
 def maxmovemaker(self,typem=typemoves):
     maxmove=[]
     gm="None"
@@ -128,11 +208,14 @@ def maxmovemaker(self,typem=typemoves):
 def moveset(moves):
     moves=eval(moves)
     result=[]
-    while len(result)<4:
-        x=random.choice(moves)
-        if x not in result:
-            result.append(x)
-    return result            
+    if len(moves)>4:
+        while len(result)<4:
+            x=random.choice(moves)
+            if x not in result:
+                result.append(x)
+        return result          
+    else:
+        return moves          
 class Pokemon:
     def __init__(self,name="MissingNo.",primaryType="???",nickname="No",secondaryType="???",teraType="???",level=100,nature="None",happiness=255,hp=0,atk=0,defense=0,spatk=0,spdef=0,speed=0,hpiv=0,atkiv=0,defiv=0,spatkiv=0,spdefiv=0,speediv=0,hpev=0,atkev=0,defev=0,spatkev=0,spdefev=0,speedev=0,ability="Unknown,Known",moves="Moves,M,N,P,U",maxiv="No",shiny="No",sprite="url",backsprite="url",item="None",gender="None",tera="???",catchdate="Unknown",weight=100,icon="<:000:1127112083792728074>",m1pp=32,m2pp=32,m3pp=32,m4pp=32,mx1pp=32,mx2pp=32,mx3pp=32,mx4pp=32):
         self.name=name
@@ -152,6 +235,7 @@ class Pokemon:
         self.happiness=happiness
         self.hp=hp
         self.nickname=nickname
+        self.nickname=self.nickname.replace(" <:favorite:1144122202942357534>","")
         if self.nickname=="No":
             self.nickname=self.name
         self.atk=atk
@@ -195,8 +279,9 @@ class Pokemon:
         self.atktime=0
         self.critrate=1
         self.lockon=False
+        self.item=item
         self.dmgtaken=0
-        self.confuseeendturn=0
+        self.confuseeendturn=-1
         self.use="None"
         self.perishturn=0
         self.evasion=100
@@ -210,14 +295,14 @@ class Pokemon:
         self.charged=False
         self.truant=False
         self.atkby=None
-        self.sleependturn=-1
         self.fmove=False
         self.fmoveturn=0
         self.bullrush=False
         self.yawn=False
         self.flinched=False
         self.taunted=False
-        self.canfakeout=False
+        self.taunturn=0
+        self.canfakeout=True
         self.seeded=False
         self.precharge=False
         self.confused=False
@@ -237,7 +322,39 @@ class Pokemon:
         self.ability=ability
         self.moves=moves
         self.moves=moveset(self.moves)
+        self.zmove="None"
+        self.zuse=False
+        if "m-Z" in self.item:
+            self.zuse=True
+            self.zmove=zmove(self)
         self.maxmoves=maxmovemaker(self,typemoves)
+        #Volcalith
+        self.vcdmg=False
+        self.vcendturn=0
+        #Vine Lash
+        self.vldmg=False
+        self.vlendturn=0
+        #Magma Storm
+        self.magmadmg=False
+        self.magmaendturn=0
+        #Wildfire
+        self.wfdmg=False
+        self.wfendturn=0
+        #Cannonade
+        self.cndmg=False
+        self.cnendturn=0
+        #gravity
+        self.grav=False
+        self.gravendturn=0
+        #Centi
+        self.cntdmg=False
+        self.cntendturn=0
+        self.infestation=0
+        self.cursed=False
+        self.trap=False
+        self.sandtomb=0
+        self.whirlpool=0
+        self.firespin=0
         self.lostmoves=[]
         self.m1pp=m1pp
         self.m2pp=m2pp
@@ -283,7 +400,6 @@ class Pokemon:
         self.backsprite="http://play.pokemonshowdown.com/sprites/ani-back/"+self.sprite.split("/")[-1]
         self.maxiv=maxiv
         self.shiny=shiny
-        self.item=item
         if maxiv=="Alpha":
             if "Alpha" not in self.nickname and self.nickname==self.name:
                 self.nickname=self.nickname+" <:alpha:1127167307198758923>"

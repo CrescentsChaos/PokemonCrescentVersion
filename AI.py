@@ -22,6 +22,7 @@ async def moveAI(x,y,tr1,tr2,field):
     emove=[]      
     resmove=[]
     immunemove=[]
+    superduper=[]
     use="None"
     bugres=['Grass', 'Fighting', 'Ground']
     bugwk=['Rock', 'Flying', 'Fire']
@@ -82,7 +83,13 @@ async def moveAI(x,y,tr1,tr2,field):
     #ground
     groundres=['Poison', 'Rock']
     groundwk=['Water', 'Grass',"Ice"]
-    groundimmune=["Flying"]       
+    groundimmune=["Flying"]     
+    if x.zuse==True and tr1.canz==True:
+        x.zuse=False
+        tr1.canz=False
+        return x.zmove,emove,superduper,myimmunemove 
+        x.zuse=False
+        tr1.canz=False
     if len(mymove)==0 and len(x.moves)==0:  
         use="Struggle"         
     type_moves = {
@@ -280,7 +287,6 @@ async def moveAI(x,y,tr1,tr2,field):
         resmove+=list(set(mymove). intersection(typemoves.ghostmoves))        
     if "Dark" in resistlist:
         resmove+=list(set(mymove). intersection(typemoves.darkmoves))                
-    #use="None"
     eheal=list(set(mymove).intersection(typemoves.healingmoves))
     eprior=list(set(mymove).intersection(typemoves.priorityatkmoves))
     superduper=list(set(emove).intersection(mystablist))
@@ -312,12 +318,12 @@ async def moveAI(x,y,tr1,tr2,field):
     if y.status=="Paralyzed":
         if "Thunder Wave" in mymove:
             mymove.remove("Thunder Wave")         
-    if x.spatkb==4:
+    if x.spatkb==6:
         if "Tail Glow" in mymove:
             mymove.remove("Tail Glow")      
-    if y.atkcat=="Physical" and "Counter" in x.moves:
+    if y.atkcat=="Physical" and "Counter" in x.moves and y.use in typemoves.physicalmoves:
         use="Counter"                   
-    if y.atkcat=="Special" and "Mirror Coat" in x.moves:
+    if y.atkcat=="Special" and "Mirror Coat" in x.moves and y.use not in typemoves.physicalmoves and y.use not in typemoves.statusmove:
         use="Mirror Coat"
     if x.use=="Gigaton Hammer" and "Gigaton Hammer" in x.moves:
         mymove.remove("Gigaton Hammer")  
@@ -345,9 +351,9 @@ async def moveAI(x,y,tr1,tr2,field):
     if x.speed<y.speed and y.status=="Alive":
         if "Thunder Wave" in mymove:
             use="Thunder Wave"
-    if x.spatkb==4:
+    if x.spatkb==6:
         mymove=list(set(mymove)-set(mymove). intersection(typemoves.spatkboost))            
-    if x.atkb==4:
+    if x.atkb==6:
         mymove=list(set(mymove)-set(mymove). intersection(typemoves.atkboost))            
     if x.protect!=False:       
         mymove=list(set(mymove)-set(typemoves.protectmoves))
@@ -364,9 +370,9 @@ async def moveAI(x,y,tr1,tr2,field):
             use=eheal[0]
     if len(emove)>0 and len(superduper)==0:
         use=random.choice(emove)
-    if len(superduper)>0:
+    elif len(superduper)>0:
         use= superduper[0]
-    if len(mystablist)>0 and len(emove)==0:
+    elif len(mystablist)>0 and len(emove)==0:
         use=random.choice(mystablist)  
     if field.terrain=="Normal":
         tmove=list (set(mymove).intersection(typemoves.terrainmove))
@@ -398,10 +404,7 @@ async def moveAI(x,y,tr1,tr2,field):
         if "Toxic Spikes"  in mymove:
             use="Toxic Spikes"  
     if (y.hp<=(y.maxhp*0.20) or y.defb<0.5) and x.speed<y.speed and len(eprior)!=0:
-        use=random.choice(eprior+emove)  
-    if x.item !="None" and "Choice" in x.item and x.choiced is False and use !="None" and x.dmax is False and x.owner.ai==True and x.owner.ai==True:
-        x.choiced=True
-        x.choicedmove=use
+        use=random.choice(eprior+emove) 
     if x.hp<=(x.maxhp*0.25) and "Destiny Bond" in mymove and x.speed>y.speed and x.dmax==False:
         use="Destiny Bond"
     if x.hp<=(x.maxhp*0.25) and "Misty Explosion" in mymove and x.dmax==False:
@@ -413,7 +416,7 @@ async def moveAI(x,y,tr1,tr2,field):
     if y.status in ["Poison","Badly Poisoned"] and len(list(set(x.moves). intersection(["Venoshock"])))>0 and "Steel" not in (y.primaryType,y.secondaryType,y.teraType) and "Poison" not in (y.primaryType,y.secondaryType,y.teraType):
         use=list(set(x.moves). intersection (["Venoshock"]))[0]
     if y.status!="Alive" and len(list(set(x.moves). intersection(["Hex","Infernal Parade","Bitter Malice","Barb Barrage"])))>0 and "Ghost" not in (y.primaryType,y.secondaryType,y.teraType):
-        use=list(set(x.moves). intersection (["Hex","Infernal Parade","Bitter Malice","Barb Barrage"]))[0]
+        use=list(set(x.moves).intersection (["Hex","Infernal Parade","Bitter Malice","Barb Barrage"]))[0]
     if x.status=="Sleep" and "Sleep Talk" in x.moves and x.choiced==False:
         use="Sleep Talk"
     if len(x.moves)==5 and (y.maxdef<250 or y.maxspdef<250):
@@ -427,6 +430,9 @@ async def moveAI(x,y,tr1,tr2,field):
             use=random.choice(resmove)
         elif len(mymove)!=0:
             use=random.choice(mymove)        
+    if "Choice" in x.item and x.choiced is False and x.dmax is False:
+        x.choiced=True
+        x.choicedmove=use            
     if x.choiced is True and x.dmax is False:
         if x.choicedmove in x.moves:
             use=x.choicedmove 
@@ -451,5 +457,4 @@ async def moveAI(x,y,tr1,tr2,field):
 #    print("CHOICED MOVE:",x.choicedmove)
 #    print("SELECTED MOVE:",use)   
 #    print("=====================")       
-    print(use)      
     return use,emove,superduper,myimmunemove 

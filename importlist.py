@@ -7,6 +7,7 @@ import time
 from keep_alive import keep_alive
 from discord.ext import commands
 from discord import File
+from discord import app_commands
 from pokemon import *
 from trainers import *
 from field import *
